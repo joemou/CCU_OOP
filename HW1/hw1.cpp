@@ -79,7 +79,7 @@ signed main() {
         precedence_list[g1].push_back(g2);
     }
 
-    //sorted it and put it in to class
+    //sorted it and put the precedence in to class
     vector<int> sorted_precedece = topologicalSort(precedence_list);
     int p = 0;
     for (auto it = sorted_precedece.begin(); it != sorted_precedece.end(); ++it) {
