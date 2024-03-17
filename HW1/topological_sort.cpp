@@ -37,7 +37,7 @@ vector<int> topologicalSort(unordered_map<int, vector<int>>& graph) {
 
 int main() {
     // Input precedences
-    vector<pair<int, int>> precedences = {{1, 3}, {2, 1}, {3, 4}, {4, 5}, {5, 6}};
+    vector<pair<int, int>> precedences = {{1, 3}, {2, 1}, {4, 3}, {5, 4}, {5, 6}};
 
     // Constructing the graph
     unordered_map<int, vector<int>> graph;
