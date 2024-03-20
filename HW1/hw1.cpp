@@ -9,7 +9,7 @@
 using namespace std;
 
 //record the precednece and what else
-class basic{
+class precedence{
     public:
         int gateId;
         int logQubitID1;
@@ -114,7 +114,7 @@ signed main() {
     int numLogicalQubits, numGates, numPrecedences, numPhysicalQubits, numPhysicalLinks;
     cin >> numLogicalQubits >> numGates >> numPrecedences >> numPhysicalQubits >> numPhysicalLinks;
 
-    basic info[numGates];
+    precedence info[numGates];
     //cin gates and its logic relatoin
     for (int i = 0; i < numGates; ++i) {
         cin >> info[i].gateId >> info[i].logQubitID1 >> info[i].logQubitID2;

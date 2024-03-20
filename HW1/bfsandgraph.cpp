@@ -7,14 +7,13 @@
 using namespace std;
 
 // Structure to represent a graph node
-struct Node {
-    int id;
-    int lid;
-    string name; // Additional data in node
+typedef struct Node {
+
+    int phy_id;
+    int logicalid;
     vector<int> neighbors; // List of neighboring node IDs
 
-    Node(int _id, const string& _name) : id(_id), name(_name) {}
-};
+} Node;
 
 class Graph {
 private:
@@ -22,17 +21,22 @@ private:
 
 public:
     // Add a node to the graph
-    void addNode(int id, const string& name) {
-        if (nodes.find(id) == nodes.end()) {
-            Node* newNode = new Node(id, name);
-            nodes[id] = newNode;
+    void addNode(int phy_id) {
+        if (nodes.find(phy_id) == nodes.end()) {
+            Node *newNode = new Node;
+            newNode->phy_id = phy_id;
+            nodes[phy_id] = newNode;
         }
     }
 
+
+    
     // Add an undirected edge between two nodes
-    void addEdge(int src, int dest, const string& srcName, const string& destName) {
-        addNode(src, srcName);
-        addNode(dest, destName);
+    void addEdge(int src, int dest)
+    {
+        //if there is no node add it
+        addNode(src);
+        addNode(dest);
         // Update the neighbors list of each node
         nodes[src]->neighbors.push_back(dest);
         nodes[dest]->neighbors.push_back(src);
@@ -81,7 +85,7 @@ public:
     // Print the additional data of a node
     void printNodeData(int id) {
         if (nodes.find(id) != nodes.end()) {
-            cout << "Node " << id << " - Name: " << nodes[id]->name << endl;
+            cout << "Node " << id <<  endl;
             // You can add more data fields here if needed
         } else {
             cout << "Node with ID " << id << " not found." << endl;
@@ -93,17 +97,16 @@ int main() {
     Graph graph;
 
     // Add nodes and edges to the graph
-    graph.addEdge(101, 102, "Node A", "Node B");
-    graph.addEdge(101, 103, "Node A", "Node C");
-    graph.addEdge(102, 104, "Node B", "Node D");
-    graph.addEdge(103, 105, "Node C", "Node E");
-    graph.addEdge(104, 105, "Node D", "Node E");
-    graph.addEdge(104, 106, "Node D", "Node F");
-    graph.addEdge(105, 107, "Node E", "Node G");
+    graph.addEdge(1, 2);
+    graph.addEdge(1, 3);
+    graph.addEdge(2, 4);
+    graph.addEdge(3, 5);
+
+
 
     // Define start and end points by their logical IDs
-    int start = 103;
-    int end = 107;
+    int start = 1;
+    int end = 5;
 
     // Perform BFS to find the shortest path
     vector<int> shortestPath = graph.bfs(start, end);
