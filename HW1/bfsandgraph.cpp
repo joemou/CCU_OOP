@@ -10,7 +10,7 @@ using namespace std;
 typedef struct Node {
 
     int phy_id;
-    int logicalid;
+    int logicalId;
     vector<int> neighbors; // List of neighboring node IDs
 
 } Node;
@@ -29,7 +29,17 @@ public:
         }
     }
 
+    void setLogicalNum(int phy_nodes_num){
+        for (int i=1; i < phy_nodes_num+1; i++){
+            nodes[i]->logicalId = phy_nodes_num+1-i;
+        }
+    }
 
+    void swapLogicalNum(int a, int b){
+        int temp = nodes[b]->logicalId;
+        nodes[b]->logicalId = nodes[a]->logicalId;
+        nodes[a]->logicalId = temp;
+    }
     
     // Add an undirected edge between two nodes
     void addEdge(int src, int dest)
@@ -42,38 +52,50 @@ public:
         nodes[dest]->neighbors.push_back(src);
     }
 
-    // Breadth First Search to find the shortest path between start and end
-    vector<int> bfs(int start, int end) {
+    // Logical breadth First Search to find the shortest path between logical start and logical end
+    vector<int> bfs(int logStart, int logEnd, int num) {
         vector<int> path;
         unordered_map<int, bool> visited;
         unordered_map<int, int> parent;
         queue<int> q;
+        
+        int phyStart, phyEnd;
+
+        for (int i = 1; i < num+1;i++){
+            if(nodes[i]->logicalId==logStart){
+                phyStart = i;
+            }
+            if(nodes[i]->logicalId==logEnd){
+                phyEnd = i;
+            }
+        }
 
         // Start BFS from the starting node
-        q.push(start);
-        visited[start] = true;
+        q.push(phyStart);
+        visited[phyStart] = true;
 
         while (!q.empty()) {
-            int current = q.front();
+            int phyCurrent = q.front();
+            int logCurrent = nodes[phyCurrent]->logicalId;
             q.pop();
 
-            if (current == end) {
+            if (logCurrent == logEnd) {
                 // Reconstruct the path if the end node is reached
-                int node = end;
-                while (node != start) {
-                    path.push_back(node);
+                int node = phyCurrent;
+                while (node != phyStart) {
+                    path.push_back(nodes[node]->logicalId);
                     node = parent[node];
                 }
-                path.push_back(start);
+                path.push_back(logStart);
                 reverse(path.begin(), path.end());
                 return path;
             }
 
-            for (int neighbor : nodes[current]->neighbors) {
+            for (int neighbor : nodes[phyCurrent]->neighbors) {
                 if (!visited[neighbor]) {
                     q.push(neighbor);
                     visited[neighbor] = true;
-                    parent[neighbor] = current;
+                    parent[neighbor] = phyCurrent;
                 }
             }
         }
@@ -98,21 +120,21 @@ int main() {
 
     // Add nodes and edges to the graph
     graph.addEdge(1, 2);
-    graph.addEdge(1, 3);
-    graph.addEdge(2, 4);
-    graph.addEdge(3, 5);
+    graph.addEdge(2, 3);
+    graph.addEdge(3, 4);
+    graph.addEdge(4, 1);
 
-
+    graph.setLogicalNum(4);
 
     // Define start and end points by their logical IDs
-    int start = 1;
-    int end = 5;
+    int logical_start = 1;
+    int logical_end = 3;
 
     // Perform BFS to find the shortest path
-    vector<int> shortestPath = graph.bfs(start, end);
+    vector<int> shortestPath = graph.bfs(logical_start, logical_end, 4);
 
     // Output the shortest path
-    cout << "Shortest path from " << start << " to " << end << ": ";
+    cout << "Shortest path from " << logical_start << " to " << logical_end << ": ";
     for (int node : shortestPath) {
         cout << node << " ";
     }
