@@ -31,7 +31,7 @@ public:
 
     void setLogicalNum(int phy_nodes_num){
         for (int i=1; i < phy_nodes_num+1; i++){
-            nodes[i]->logicalId = phy_nodes_num+1-i;
+            nodes[i]->logicalId = 7+i;
         }
     }
 
@@ -127,8 +127,8 @@ int main() {
     graph.setLogicalNum(4);
 
     // Define start and end points by their logical IDs
-    int logical_start = 1;
-    int logical_end = 3;
+    int logical_start = 8;
+    int logical_end = 10;
 
     // Perform BFS to find the shortest path
     vector<int> shortestPath = graph.bfs(logical_start, logical_end, 4);
