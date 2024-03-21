@@ -25,6 +25,7 @@ public:
         if (nodes.find(phy_id) == nodes.end()) {
             Node *newNode = new Node;
             newNode->phy_id = phy_id;
+            newNode->logicalId = -1;
             nodes[phy_id] = newNode;
         }
     }
@@ -54,7 +55,7 @@ public:
 
     // Logical breadth First Search to find the shortest path between logical start and logical end
     vector<int> bfs(int logStart, int logEnd, int num) {
-        vector<int> path;
+        vector<int> logpath;
         unordered_map<int, bool> visited;
         unordered_map<int, int> parent;
         queue<int> q;
@@ -83,12 +84,12 @@ public:
                 // Reconstruct the path if the end node is reached
                 int node = phyCurrent;
                 while (node != phyStart) {
-                    path.push_back(nodes[node]->logicalId);
+                    logpath.push_back(nodes[node]->logicalId);
                     node = parent[node];
                 }
-                path.push_back(logStart);
-                reverse(path.begin(), path.end());
-                return path;
+                logpath.push_back(logStart);
+                reverse(logpath.begin(), logpath.end());
+                return logpath;
             }
 
             for (int neighbor : nodes[phyCurrent]->neighbors) {
@@ -101,7 +102,7 @@ public:
         }
 
         // If end node is not reachable from start node, return an empty path
-        return path;
+        return logpath;
     }
 
     // Print the additional data of a node
