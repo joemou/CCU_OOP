@@ -104,17 +104,13 @@ public:
         unordered_map<int, int> parent;
         queue<int> q;
         
-        int phyStart=-1;
+        int phyStart;
 
         for (int i = 1; i < num+1;i++){
             if(nodes[i]->logicalId==logStart){
                 phyStart = i;
             }
 
-        }
-
-        if(phyStart==-1){
-            exit(0);
         }
 
         // Start BFS from the starting node
