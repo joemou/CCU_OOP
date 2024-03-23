@@ -144,7 +144,7 @@ public:
         }
 
         // If end node is not reachable from start node, return an empty path
-        exit();
+        exit(0);
     }
 
 };
