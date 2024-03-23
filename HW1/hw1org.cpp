@@ -100,7 +100,7 @@ public:
     // Logical breadth First Search to find the shortest path between logical start and logical end
     vector<int> bfs(int logStart, int logEnd, int num) {
         vector<int> logpath;
-        unordered_map<int, bool> visited;
+        vector<bool> visited(num + 1, false);
         unordered_map<int, int> parent;
         queue<int> q;
         
@@ -129,7 +129,6 @@ public:
 
             if (phyCurrent == phyEnd) {
                 // Reconstruct the path if the end node is reached
-                return logpath;
                 int node = phyCurrent;
                 while (node != phyStart) {
                     logpath.push_back(nodes[node]->logicalId);
