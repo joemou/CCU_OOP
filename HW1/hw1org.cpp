@@ -144,18 +144,9 @@ public:
         }
 
         // If end node is not reachable from start node, return an empty path
-        return logpath;
+        exit();
     }
 
-    // Print the additional data of a node
-    void printNodeData(int id) {
-        if (nodes.find(id) != nodes.end()) {
-            cout << "Node " << id <<  endl;
-            // You can add more data fields here if needed
-        } else {
-            cout << "Node with ID " << id << " not found." << endl;
-        }
-    }
 };
 
 
