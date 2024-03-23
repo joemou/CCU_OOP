@@ -104,17 +104,19 @@ public:
         unordered_map<int, int> parent;
         queue<int> q;
         
-        int phyStart=-1;
+        int phyStart=-1,phyEnd=-1;
 
         for (int i = 1; i < num+1;i++){
             if(nodes[i]->logicalId==logStart){
                 phyStart = i;
+            }            
+            if(nodes[i]->logicalId==logEnd){
+                phyEnd = i;
             }
-
         }
 
-        if(phyStart==-1){
-            exit(0);
+        if(phyStart==-1||phyEnd==-1){
+            return logpath;
         }
 
         // Start BFS from the starting node
@@ -123,10 +125,9 @@ public:
 
         while (!q.empty()) {
             int phyCurrent = q.front();
-            int logCurrent = nodes[phyCurrent]->logicalId;
             q.pop();
 
-            if (logCurrent == logEnd) {
+            if (phyCurrent == phyEnd) {
                 // Reconstruct the path if the end node is reached
                 int node = phyCurrent;
                 while (node != phyStart) {
