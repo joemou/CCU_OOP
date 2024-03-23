@@ -129,6 +129,7 @@ public:
 
             if (phyCurrent == phyEnd) {
                 // Reconstruct the path if the end node is reached
+                return logpath;
                 int node = phyCurrent;
                 while (node != phyStart) {
                     logpath.push_back(nodes[node]->logicalId);
@@ -239,7 +240,7 @@ signed main() {
     {
         vector<int> shortestPath = g.bfs((*i).logQubitID1, (*i).logQubitID2, numLogicalQubits);
         if(shortestPath.empty()){
-            break;
+            continue;
         }
         g.swapLogicalNum(shortestPath);
     }
