@@ -115,8 +115,19 @@ public:
             }
         }
 
+
+
         if(phyStart==-1||phyEnd==-1){
             return logpath;
+        }
+
+        for (int neighbor : nodes[phyStart]->neighbors) {
+            if (neighbor==phyEnd) {
+                logpath.push_back(logEnd);
+                logpath.push_back(logStart);
+                reverse(logpath.begin(), logpath.end());
+                return logpath;
+            }
         }
 
         // Start BFS from the starting node
