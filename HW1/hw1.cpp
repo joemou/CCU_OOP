@@ -10,69 +10,156 @@ using namespace std;
 
 //record the precednece and what else
 class precedence{
-    public:
-        int gateId;
-        int logQubitID1;
-        int logQubitID2;
-        int precedence;
+public:
+    int gateId;
+    int logQubitID1;
+    int logQubitID2;
+    int precedence;
 };
 
 // Custom node structure to store additional data of physical graph
-class Node {
-    public:
-        int physical_id;       // Node ID
-        int logical_id;    // Additional data (e.g., weight, label, etc.)
-        Node(int p, int l) : physical_id(p), logical_id(l) {}
-};
+typedef struct Node {
+public:
+
+    int phy_id;
+    int logicalId;
+    vector<int> neighbors; // List of neighboring node IDs
+
+}Node;
 
 class Graph {
-    public:
-        Graph(int vertices) : V(vertices), graph(vertices) {}
+private:
+    unordered_map<int, Node*> nodes;
 
-        void addEdge(int u, int v, int lid1, int lid2) {
-            graph[u].push_back(Node(v,lid1));
-            graph[v].push_back(Node(u,lid2));  // Assuming an undirected graph
+public:
+    // Add a node to the graph
+    void addNode(int phy_id) {
+        if (nodes.find(phy_id) == nodes.end()) {
+            Node *newNode = new Node;
+            newNode->phy_id = phy_id;
+            newNode->logicalId = -1;
+            nodes[phy_id] = newNode;
         }
+    }
 
-        void BFS(int start, int end) {
-            vector<bool> visited(V, false);
-            vector<int> parent(V, -1);
-            queue<int> queue;
+    void setLogicalNum(int phy_nodes_num){
+        for (int i=1; i < phy_nodes_num+1; i++){
+            nodes[i]->logicalId = i;
+        }
+    }
 
-            visited[start] = true;
-            queue.push(start);
+    void swapLogicalNum(vector<int> logicalNum){
+        vector<int>::iterator it=logicalNum.begin();
+        
+        while(it!=logicalNum.end()-2){
+            
+            //do the vector swap which is swap for the logic path
+            vector<int>::iterator logicA = it;
+            vector<int>::iterator logicB = it + 1;
+            int temp = *it;
+            *(it) = *(it + 1);
+            *(it + 1) = temp;
 
-            while (!queue.empty()) {
-                int node = queue.front();
-                queue.pop();
+            int phyA = -1;
+            int phyB = -1;
 
-                if (node == end) {
-                    // Found the destination, reconstruct the path
-                    vector<int> path;
-                    cout << "Shortest path from " << start << " to " << end << ": ";
-                    while (node != -1) {
-                        cout << node << " ";
-                        node = parent[node];
-                    }
-                    cout << endl;
-                    return;
+            for (auto &pair : nodes)
+            {
+                if (pair.second->logicalId == *logicA){
+                    phyA = pair.first;
                 }
-
-                for (int neighbor : graph[node].logical_id) {
-                    if (!visited[neighbor]) {
-                        visited[neighbor] = true;
-                        parent[neighbor] = node;
-                        queue.push(neighbor);
-                    }
+                if (pair.second->logicalId == *logicB){
+                    phyB = pair.first;
                 }
             }
 
-            cout << "No path found from " << start << " to " << end << endl;
+            //by logic path, we swap the node logical value in the map
+            unordered_map<int, Node*>::iterator itA = nodes.find(phyA);
+            unordered_map<int, Node*>::iterator itB = nodes.find(phyB);
+            cout<<"SWAP"<<" q"<< itA->second->logicalId<<" q"<< itB->second->logicalId<<endl;
+            temp = itA->second->logicalId;
+            itA->second->logicalId = itB->second->logicalId;
+            itB->second->logicalId = temp;
+            ++it;
+
         }
-    private:
-        int V;  // Number of vertices
-        vector<vector<Node>> graph;
+        cout<<"CNOT"<<" q"<< *(logicalNum.end()-2)<<" q"<< *(logicalNum.end()-1)<<endl;
+    }
+    
+    // Add an undirected edge between two nodes
+    void addEdge(int src, int dest)
+    {
+        //if there is no node add it
+        addNode(src);
+        addNode(dest);
+        // Update the neighbors list of each node
+        nodes[src]->neighbors.push_back(dest);
+        nodes[dest]->neighbors.push_back(src);
+    }
+
+    // Logical breadth First Search to find the shortest path between logical start and logical end
+    vector<int> bfs(int logStart, int logEnd, int num) {
+        vector<int> logpath;
+        unordered_map<int, bool> visited;
+        unordered_map<int, int> parent;
+        queue<int> q;
+        
+        int phyStart;
+
+        for (int i = 1; i < num+1;i++){
+            if(nodes[i]->logicalId==logStart){
+                phyStart = i;
+            }
+
+        }
+
+        // Start BFS from the starting node
+        q.push(phyStart);
+        visited[phyStart] = true;
+
+        while (!q.empty()) {
+            int phyCurrent = q.front();
+            int logCurrent = nodes[phyCurrent]->logicalId;
+            q.pop();
+
+            if (logCurrent == logEnd) {
+                // Reconstruct the path if the end node is reached
+                int node = phyCurrent;
+                while (node != phyStart) {
+                    logpath.push_back(nodes[node]->logicalId);
+                    node = parent[node];
+                }
+                logpath.push_back(logStart);
+                reverse(logpath.begin(), logpath.end());
+                return logpath;
+            }
+
+            for (int neighbor : nodes[phyCurrent]->neighbors) {
+                if (!visited[neighbor]) {
+                    q.push(neighbor);
+                    visited[neighbor] = true;
+                    parent[neighbor] = phyCurrent;
+                }
+            }
+        }
+
+        // If end node is not reachable from start node, return an empty path
+        return logpath;
+    }
+
+    // Print the additional data of a node
+    void printNodeData(int id) {
+        if (nodes.find(id) != nodes.end()) {
+            cout << "Node " << id <<  endl;
+            // You can add more data fields here if needed
+        } else {
+            cout << "Node with ID " << id << " not found." << endl;
+        }
+    }
 };
+
+
+
 
 //the dfs for the topological sort
 void dfs(int node, unordered_map<int, vector<int>>& graph, unordered_set<int>& visited, stack<int>& sorted) {
@@ -105,7 +192,7 @@ vector<int> topologicalSort(unordered_map<int, vector<int>>& graph) {
 }
 
 //for sort precedence
-bool compareByprecedence(const basic& a, const basic& b) {
+bool compareByprecedence(const precedence& a, const precedence& b) {
     return a.precedence < b.precedence;
 }
 
@@ -137,17 +224,25 @@ signed main() {
     //sort the logical class by the precedence
     int size = sizeof(info) / sizeof(info[0]);
     sort(info, info + size, compareByprecedence);
-    
+
     //create physical graph
-    Graph g(numPhysicalQubits);
+    Graph g;
     for (int i = 0; i < numPhysicalLinks; ++i) {
         int phyLinkID, p1, p2;
         cin >> phyLinkID >> p1 >> p2;
-        g.addEdge(p1-1, p2-1);
+        g.addEdge(p1, p2);
     }
 
-    for (auto i = info; i != info + numGates; ++i) {
-        g.BFS((*i).logQubitID1, (*i).logQubitID2);
+    g.setLogicalNum(numPhysicalQubits);
+
+    for (int i = 1; i <= numPhysicalQubits;i++){
+        cout << i << " " << i<<endl;
+    }
+
+    for (auto i = info; i != info + numGates; ++i)
+    {
+        vector<int> shortestPath = g.bfs((*i).logQubitID1, (*i).logQubitID2, numLogicalQubits);
+        g.swapLogicalNum(shortestPath);
     }
 
     return 0;

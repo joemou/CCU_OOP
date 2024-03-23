@@ -1,19 +1,30 @@
 #include <iostream>
 #include <vector>
-#include <queue>
 #include <unordered_map>
+#include <unordered_set>
+#include <stack>
 #include <algorithm>
+#include <queue>
 
 using namespace std;
 
-// Structure to represent a graph node
-typedef struct Node {
+//record the precednece and what else
+class precedence{
+public:
+    int gateId;
+    int logQubitID1;
+    int logQubitID2;
+    int precedence;
+};
 
+// Custom node structure to store additional data of physical graph
+typedef struct Node {
+public:
     int phy_id;
     int logicalId;
     vector<int> neighbors; // List of neighboring node IDs
 
-} Node;
+}Node;
 
 class Graph {
 private:
@@ -32,7 +43,7 @@ public:
 
     void setLogicalNum(int phy_nodes_num){
         for (int i=1; i < phy_nodes_num+1; i++){
-            nodes[i]->logicalId = 7+i;
+            nodes[i]->logicalId = i;
         }
     }
 
@@ -146,33 +157,98 @@ public:
     }
 };
 
-int main() {
-    Graph graph;
 
-    // Add nodes and edges to the graph
-    graph.addEdge(1, 2);
-    graph.addEdge(2, 3);
-    graph.addEdge(3, 4);
-    graph.addEdge(4, 5);
 
-    graph.setLogicalNum(5);
 
-    
+//the dfs for the topological sort
+void dfs(int node, unordered_map<int, vector<int>>& graph, unordered_set<int>& visited, stack<int>& sorted) {
+    visited.insert(node);
+    for (int neighbor : graph[node]) {
+        if (visited.find(neighbor) == visited.end()) {
+            dfs(neighbor, graph, visited, sorted);
+        }
+    }
+    sorted.push(node);
+}
+//deal with the precedence
+vector<int> topologicalSort(unordered_map<int, vector<int>>& graph) {
+    unordered_set<int> visited;
+    stack<int> sorted;
 
-    // Define start and end points by their logical IDs
-    int logical_start = 8;
-    int logical_end = 12;
+    for (auto& pair : graph) {
+        int node = pair.first;
+        if (visited.find(node) == visited.end()) {
+            dfs(node, graph, visited, sorted);
+        }
+    }
 
-    // Perform BFS to find the shortest path
-    vector<int> shortestPath = graph.bfs(logical_start, logical_end, 4);
-    graph.swapLogicalNum(shortestPath);
+    vector<int> result;
+    while (!sorted.empty()) {
+        result.push_back(sorted.top());
+        sorted.pop();
+    }
+    return result;
+}
 
-    // Output the shortest path
-    cout << "Shortest path from " << logical_start << " to " << logical_end << ": ";
-    for (int node : shortestPath) {
-        cout << node << " ";
+//for sort precedence
+bool compareByprecedence(const precedence& a, const precedence& b) {
+    return a.precedence < b.precedence;
+}
+
+signed main() {
+    //cin the num
+    int numLogicalQubits, numGates, numPrecedences, numPhysicalQubits, numPhysicalLinks;
+    cin >> numLogicalQubits >> numGates >> numPrecedences >> numPhysicalQubits >> numPhysicalLinks;
+
+    precedence info[numGates];
+    //cin gates and its logic relatoin
+    for (int i = 0; i < numGates; ++i) {
+        cin >> info[i].gateId >> info[i].logQubitID1 >> info[i].logQubitID2;
+    }
+
+    //cin their precedence
+    unordered_map<int, vector<int>> precedence_list;
+    for (int i = 0; i < numPrecedences; ++i) {
+        int precedenceID, g1, g2;
+        cin >> precedenceID >> g1 >> g2;
+        precedence_list[g1].push_back(g2);
+    }
+    //sorted it and put the precedence in to logical class
+    vector<int> sorted_precedece = topologicalSort(precedence_list);
+    int p = 0;
+    for (auto it = sorted_precedece.begin(); it != sorted_precedece.end(); ++it) {
+        info[(*it)-1].precedence = p;
+        p++;
+    }
+    //sort the logical class by the precedence
+    int size = sizeof(info) / sizeof(info[0]);
+    sort(info, info + size, compareByprecedence);
+
+    cout << endl;
+    for (int i = 0; i < numGates; ++i) {
+        cout << info[i].gateId << info[i].logQubitID1 << info[i].logQubitID2<<info[i].precedence<<endl;
     }
     cout << endl;
+
+    //create physical graph
+    Graph g;
+    for (int i = 0; i < numPhysicalLinks; ++i) {
+        int phyLinkID, p1, p2;
+        cin >> phyLinkID >> p1 >> p2;
+        g.addEdge(p1-1, p2-1);
+    }
+
+    g.setLogicalNum(numPhysicalQubits);
+
+    cout << endl;
+    for (int i = 0; i < numGates; ++i) {
+        cout << info[i].gateId << info[i].logQubitID1 << info[i].logQubitID2<<info[i].precedence<<endl;
+    }
+    cout << endl;
+
+    for (auto i = info; i != info + numGates; ++i) {
+        g.bfs((*i).logQubitID1, (*i).logQubitID2, numLogicalQubits);
+    }
 
     return 0;
 }
