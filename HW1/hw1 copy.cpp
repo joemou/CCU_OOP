@@ -225,12 +225,6 @@ signed main() {
     int size = sizeof(info) / sizeof(info[0]);
     sort(info, info + size, compareByprecedence);
 
-    cout << endl;
-    for (int i = 0; i < numGates; ++i) {
-        cout << info[i].gateId << info[i].logQubitID1 << info[i].logQubitID2<<info[i].precedence<<endl;
-    }
-    cout << endl;
-
     //create physical graph
     Graph g;
     for (int i = 0; i < numPhysicalLinks; ++i) {
@@ -241,13 +235,12 @@ signed main() {
 
     g.setLogicalNum(numPhysicalQubits);
 
-    cout << endl;
-    for (int i = 0; i < numGates; ++i) {
-        cout << info[i].gateId << info[i].logQubitID1 << info[i].logQubitID2<<info[i].precedence<<endl;
+    for (int i = 1; i <= numPhysicalQubits;i++){
+        cout << i << " " << i<<endl;
     }
-    cout << endl;
 
-    for (auto i = info; i != info + numGates; ++i) {
+    for (auto i = info; i != info + numGates; ++i)
+    {
         vector<int> shortestPath = g.bfs((*i).logQubitID1, (*i).logQubitID2, numLogicalQubits);
         g.swapLogicalNum(shortestPath);
     }

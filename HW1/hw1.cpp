@@ -47,44 +47,6 @@ public:
             nodes[i]->logicalId = i;
         }
     }
-
-    void swapLogicalNum(vector<int> logicalNum){
-        vector<int>::iterator it=logicalNum.begin();
-        
-        while(it!=logicalNum.end()-2){
-            
-            //do the vector swap which is swap for the logic path
-            vector<int>::iterator logicA = it;
-            vector<int>::iterator logicB = it + 1;
-            int temp = *it;
-            *(it) = *(it + 1);
-            *(it + 1) = temp;
-
-            int phyA = -1;
-            int phyB = -1;
-
-            for (auto &pair : nodes)
-            {
-                if (pair.second->logicalId == *logicA){
-                    phyA = pair.first;
-                }
-                if (pair.second->logicalId == *logicB){
-                    phyB = pair.first;
-                }
-            }
-
-            //by logic path, we swap the node logical value in the map
-            unordered_map<int, Node*>::iterator itA = nodes.find(phyA);
-            unordered_map<int, Node*>::iterator itB = nodes.find(phyB);
-            cout<<"SWAP"<<" q"<< itA->second->logicalId<<" q"<< itB->second->logicalId<<endl;
-            temp = itA->second->logicalId;
-            itA->second->logicalId = itB->second->logicalId;
-            itB->second->logicalId = temp;
-            ++it;
-
-        }
-        cout<<"CNOT"<<" q"<< *(logicalNum.end()-2)<<" q"<< *(logicalNum.end()-1)<<endl;
-    }
     
     // Add an undirected edge between two nodes
     void addEdge(int src, int dest)
@@ -98,7 +60,7 @@ public:
     }
 
     // Logical breadth First Search to find the shortest path between logical start and logical end
-    vector<int> bfs(int logStart, int logEnd, int num) {
+    void bfs(int logStart, int logEnd, int num) {
         vector<int> logpath;
         unordered_map<int, bool> visited;
         unordered_map<int, int> parent;
@@ -124,14 +86,34 @@ public:
 
             if (logCurrent == logEnd) {
                 // Reconstruct the path if the end node is reached
-                int node = phyCurrent;
-                while (node != phyStart) {
-                    logpath.push_back(nodes[node]->logicalId);
-                    node = parent[node];
+                
+                int node = parent[phyCurrent];//move to  the node previous log end
+                if(node!=phyStart){
+                    logpath.push_back(nodes[node]->logicalId);//push back path num to print swap and cnot latter
                 }
-                logpath.push_back(logStart);
-                reverse(logpath.begin(), logpath.end());
-                return logpath;
+                int temp = nodes[node]->logicalId;
+                nodes[node]->logicalId = logStart;//swap the logic num first and node whic previous end
+                
+                while (node != phyStart) {
+                    int temp2 = nodes[parent[node]]->logicalId; //parent logic id
+                    if(temp2!=phyStart){
+                        logpath.push_back(temp2);
+                    }
+                    node = parent[node];
+                    nodes[node]->logicalId = temp;
+                    temp = temp2;
+                }
+                nodes[node]->logicalId = temp;
+
+                while(!logpath.empty()){
+                    cout<<"SWAP"<<" q"<< logStart<<" q"<< *(logpath.end()-1)<<endl;
+                    logpath.pop_back();
+                }
+
+                cout<<"CNOT"<<" q"<< logStart<<" q"<< logEnd<<endl;
+
+
+                return;
             }
 
             for (int neighbor : nodes[phyCurrent]->neighbors) {
@@ -143,8 +125,7 @@ public:
             }
         }
 
-        // If end node is not reachable from start node, return an empty path
-        return logpath;
+        return;
     }
 
     // Print the additional data of a node
@@ -239,10 +220,8 @@ signed main() {
         cout << i << " " << i<<endl;
     }
 
-    for (auto i = info; i != info + numGates; ++i)
-    {
-        vector<int> shortestPath = g.bfs((*i).logQubitID1, (*i).logQubitID2, numLogicalQubits);
-        g.swapLogicalNum(shortestPath);
+    for (auto i = info; i != info + numGates; ++i){
+        g.bfs((*i).logQubitID1, (*i).logQubitID2, numLogicalQubits);
     }
 
     return 0;
