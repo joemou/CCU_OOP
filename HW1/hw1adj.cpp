@@ -23,7 +23,7 @@ public:
     int physicalId;
     vector<Node*> neighbors; // List of neighboring nodes
 
-    Node(int id) : logicalId(id),physicalId(id-1) {}
+    Node(int id) : logicalId(id),physicalId(id) {}
 };
 
 class Graph {
@@ -85,6 +85,10 @@ public:
                     node = parent[node];
                 }
                 reverse(result.begin(), result.end());
+                for (auto it = result.begin(); it != result.end();it++){
+                    cout << *it<<" " ;
+                }
+                cout << endl;
                 return result;
             }
 
@@ -171,6 +175,11 @@ int main() {
     // Sort gates by precedence
     sort(info, info + numGates, compareByPrecedence);
 
+    for (auto it = sortedPrecedence.begin(); it != sortedPrecedence.end(); ++it) {
+        info[(*it) - 1].precedence = p;
+        
+    }
+
     // Create physical graph
     Graph g(numPhysicalQubits);
     for (int i = 0; i < numPhysicalLinks; ++i) {
@@ -186,14 +195,11 @@ int main() {
 
     // Traverse gates and perform swaps
     for (auto i = info; i != info + numGates; ++i) {
+        cout << "*"<< (*i).logQubitID1<<(*i).logQubitID2<< endl;
         vector<int> shortestPath = g.bfs((*i).logQubitID1, (*i).logQubitID2, numPhysicalQubits);
         if (shortestPath.empty()) {
             continue;
         }
-           cout << "+";
     }
-
-    cout << "+";
-
     return 0;
 }
