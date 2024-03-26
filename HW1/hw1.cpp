@@ -4,7 +4,7 @@
 #include <unordered_set>
 #include <stack>
 #include <algorithm>
-#include <queue>
+#include <deque>
 
 using namespace std;
 
@@ -48,43 +48,6 @@ public:
         }
     }
 
-    void swapLogicalNum(vector<int> logicalNum){
-        vector<int>::iterator it=logicalNum.begin();
-        
-        while(it!=logicalNum.end()-2){
-            
-            //do the vector swap which is swap for the logic path
-            vector<int>::iterator logicA = it;
-            vector<int>::iterator logicB = it + 1;
-            int temp = *it;
-            *(it) = *(it + 1);
-            *(it + 1) = temp;
-
-            int phyA = -1;
-            int phyB = -1;
-
-            for (auto &pair : nodes)
-            {
-                if (pair.second->logicalId == *logicA){
-                    phyA = pair.first;
-                }
-                if (pair.second->logicalId == *logicB){
-                    phyB = pair.first;
-                }
-            }
-
-            //by logic path, we swap the node logical value in the map
-            unordered_map<int, Node*>::iterator itA = nodes.find(phyA);
-            unordered_map<int, Node*>::iterator itB = nodes.find(phyB);
-            cout<<"SWAP"<<" q"<< itA->second->logicalId<<" q"<< itB->second->logicalId<<endl;
-            temp = itA->second->logicalId;
-            itA->second->logicalId = itB->second->logicalId;
-            itB->second->logicalId = temp;
-            ++it;
-
-        }
-        cout<<"CNOT"<<" q"<< *(logicalNum.end()-2)<<" q"<< *(logicalNum.end()-1)<<endl;
-    }
     
     // Add an undirected edge between two nodes
     void addEdge(int src, int dest)
@@ -97,13 +60,12 @@ public:
         nodes[dest]->neighbors.push_back(src);
     }
 
-    // Logical breadth First Search to find the shortest path between logical start and logical end
-    vector<int> bfs(int logStart, int logEnd, int num) {
+
+    int bidirectional_bfs(int logStart, int logEnd, int num) {
         vector<int> logpath;
-        vector<bool> visited(num + 1, false);
-        unordered_map<int, int> parent;
-        queue<int> q;
-        
+        vector<int> phypath;
+        unordered_map<int, bool> visitedStart, visitedEnd;
+        unordered_map<int, int> parentStart, parentEnd;
         int phyStart=-1,phyEnd=-1;
 
         for (int i = 1; i < num+1;i++){
@@ -117,43 +79,93 @@ public:
 
 
 
-        if(phyStart==-1||phyEnd==-1){
-            return logpath;
+        deque<int> qStart, qEnd;
+        qStart.push_back(phyStart);
+        qEnd.push_back(phyEnd);
+        visitedStart[phyStart] = true;
+        visitedEnd[phyEnd] = true;
+
+        int meetingNode = -1;
+
+        while (!qStart.empty() && !qEnd.empty()) {
+            int phyCurrentStart = qStart.front();
+            qStart.pop_front();
+
+            for (int neighbor : nodes[phyCurrentStart]->neighbors) {
+                if (!visitedStart[neighbor]) {
+                    qStart.push_back(neighbor);
+                    visitedStart[neighbor] = true;
+                    parentStart[neighbor] = phyCurrentStart;
+                    if (visitedEnd[neighbor]) {
+                        meetingNode = neighbor;
+                        break;
+                    }
+                }
+            }
+
+            if (meetingNode != -1)
+                break;
+
+            int phyCurrentEnd = qEnd.front();
+            qEnd.pop_front();
+
+            for (int neighbor : nodes[phyCurrentEnd]->neighbors) {
+                if (!visitedEnd[neighbor]) {
+                    qEnd.push_back(neighbor);
+                    visitedEnd[neighbor] = true;
+                    parentEnd[neighbor] = phyCurrentEnd;
+                    if (visitedStart[neighbor]) {
+                        meetingNode = neighbor;
+                        break;
+                    }
+                }
+            }
+
+            if (meetingNode != -1)
+                break;
+        }
+
+        if (meetingNode != -1) {
+            // Reconstruct path from start to meeting node
+           
+            int node = meetingNode;
+            while (node != phyStart) {
+                phypath.push_back(node);
+                node = parentStart[node];
+            }
+            phypath.push_back(phyStart);
+            reverse(phypath.begin(), phypath.end());
+
+            // Reconstruct path from end to meeting node
+            node = meetingNode;
+            while (node != phyEnd) {
+
+                node = parentEnd[node];
+                phypath.push_back(node);
+            }
+
+
+            
+            if(phypath.size()>2){
+                auto it = phypath.begin();
+                while(it!=phypath.end()-2){
+                    cout<<"SWAP"<<" q"<< nodes[*it]->logicalId<<" q"<< nodes[*(it+1)]->logicalId<<endl;
+                    int temp = nodes[*it]->logicalId;
+                    nodes[*it]->logicalId = nodes[*(it + 1)]->logicalId;
+                    nodes[*(it + 1)]->logicalId = temp;
+                    it++;
+                }
+            }
+            
         }
 
 
-        // Start BFS from the starting node
-        q.push(phyStart);
-        visited[phyStart] = true;
-
-        while (!q.empty()) {
-            int phyCurrent = q.front();
-            q.pop();
-
-            if (phyCurrent == phyEnd) {
-                // Reconstruct the path if the end node is reached
-                int node = phyCurrent;
-                while (node != phyStart) {
-                    logpath.push_back(nodes[node]->logicalId);
-                    node = parent[node];
-                }
-                logpath.push_back(logStart);
-                reverse(logpath.begin(), logpath.end());
-                return logpath;
-            }
-
-            for (int neighbor : nodes[phyCurrent]->neighbors) {
-                if (!visited[neighbor]) {
-                    q.push(neighbor);
-                    visited[neighbor] = true;
-                    parent[neighbor] = phyCurrent;
-                }
-            }
-        }
-
-        // If end node is not reachable from start node, return an empty path
-        return logpath;
+        return 0;
     }
+
+
+
+
 
 };
 
@@ -240,11 +252,10 @@ signed main() {
 
     for (auto i = info; i != info + numGates; ++i)
     {
-        vector<int> shortestPath = g.bfs((*i).logQubitID1, (*i).logQubitID2, numLogicalQubits);
-        if(shortestPath.empty()){
-            continue;
+        if(g.bidirectional_bfs((*i).logQubitID1, (*i).logQubitID2, numPhysicalQubits)){
+            break;
         }
-        g.swapLogicalNum(shortestPath);
+        cout<<"CNOT"<<" q"<< (*i).logQubitID1<<" q"<< (*i).logQubitID2<<endl;
     }
 
     return 0;

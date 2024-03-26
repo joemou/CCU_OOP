@@ -39,6 +39,7 @@
       "iostream": "cpp",
       "system_error": "cpp",
       "random": "cpp",
-      "*.tcc": "cpp"
+      "*.tcc": "cpp",
+      "utility": "cpp"
     }
   }
