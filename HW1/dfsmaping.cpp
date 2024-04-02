@@ -47,6 +47,8 @@ public:
     }
 
     
+
+    
     // Add an undirected edge between two nodes
     void addEdge(int src, int dest)
     {
@@ -134,6 +136,9 @@ public:
             }            
             if(nodes[i]->logicalId==logEnd){
                 phyEnd = i;
+            }
+            if(phyStart!=-1&&phyEnd!=-1){
+                break;
             }
         }
 
