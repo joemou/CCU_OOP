@@ -132,6 +132,7 @@ public:
         unordered_map<int, int> parentStart, parentEnd;
         int phyStart=-1,phyEnd=-1;
 
+        //find the physic num which with logic num
         for (int i = 1; i < num+1;i++){
             if(nodes[i]->logicalId==logStart){
                 phyStart = i;
@@ -145,7 +146,7 @@ public:
         }
 
 
-
+        //bibfs set two queue to deal the two bfs
         deque<int> qStart, qEnd;
         qStart.push_back(phyStart);
         qEnd.push_back(phyEnd);
@@ -161,8 +162,10 @@ public:
             for (int neighbor : nodes[phyCurrentStart]->neighbors) {
                 if (!visitedStart[neighbor]) {
                     qStart.push_back(neighbor);
+                    //already visited
                     visitedStart[neighbor] = true;
                     parentStart[neighbor] = phyCurrentStart;
+                    //if start bfs meet end bfs
                     if (visitedEnd[neighbor]) {
                         meetingNode = neighbor;
                         break;
@@ -181,6 +184,7 @@ public:
                     qEnd.push_back(neighbor);
                     visitedEnd[neighbor] = true;
                     parentEnd[neighbor] = phyCurrentEnd;
+                    //if end bfs meet start Bfs
                     if (visitedStart[neighbor]) {
                         meetingNode = neighbor;
                         break;
@@ -192,6 +196,7 @@ public:
                 break;
         }
 
+        //reconstruct the path from the middle
         if (meetingNode != -1) {
             // Reconstruct path from start to meeting node
            
@@ -206,7 +211,6 @@ public:
             // Reconstruct path from end to meeting node
             node = meetingNode;
             while (node != phyEnd) {
-
                 node = parentEnd[node];
                 phypath.push_back(node);
             }
