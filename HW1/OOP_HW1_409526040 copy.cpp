@@ -62,6 +62,8 @@ public:
         nodes[src]->size++;
     }
 
+    
+
     void Maping(precedence info[], int numGates, int numPhysicalQubits) {
         vector<bool> logvisited(numGates + 1, false);
         stack<int> Gate; // Change to stack for DFS
@@ -233,8 +235,6 @@ public:
 
 
 };
-
-
 
 
 //the dfs for the topological sort
