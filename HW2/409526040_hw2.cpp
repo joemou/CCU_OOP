@@ -772,6 +772,9 @@ class IoT_device: public node {
         
         bool hi; // this is used for example; you can remove it when doing hw2
 
+        unsigned int parent;
+        vector<unsigned int> children;
+
     protected:
         IoT_device() {} // it should not be used
         IoT_device(IoT_device&) {} // it should not be used
@@ -802,6 +805,45 @@ class IoT_device: public node {
         };
 };
 IoT_device::IoT_device_generator IoT_device::IoT_device_generator::sample;
+
+class IoT_sink: public node {
+        // map<unsigned int,bool> one_hop_neighbors; // you can use this variable to record the node's 1-hop neighbors 
+        
+        bool hi; // this is used for example; you can remove it when doing hw2
+
+        unsigned int parent;
+        vector<unsigned int> children;
+
+    protected:
+        IoT_sink() {} // it should not be used
+        IoT_sink(IoT_sink&) {} // it should not be used
+        IoT_sink(unsigned int _id): node(_id), hi(false) {} // this constructor cannot be directly called by users
+    
+    public:
+        ~IoT_sink(){}
+        string type() { return "IoT_sink"; }
+        
+        // please define recv_handler function to deal with the incoming packet
+        virtual void recv_handler (packet *p);
+        
+        // void add_one_hop_neighbor (unsigned int n_id) { one_hop_neighbors[n_id] = true; }
+        // unsigned int get_one_hop_neighbor_num () { return one_hop_neighbors.size(); }
+        
+        class IoT_sink_generator;
+        friend class IoT_sink_generator;
+        // IoT_sink is derived from node_generator to generate a node
+        class IoT_sink_generator : public node_generator{
+                static IoT_sink_generator sample;
+                // this constructor is only for sample to register this node type
+                IoT_sink_generator() { /*cout << "IoT_sink registered" << endl;*/ register_node_type(&sample); }
+            protected:
+                virtual node * generate(unsigned int _id){ /*cout << "IoT_sink generated" << endl;*/ return new IoT_sink(_id); }
+            public:
+                virtual string type() { return "IoT_sink";}
+                ~IoT_sink_generator(){}
+        };
+};
+IoT_sink::IoT_sink_generator IoT_sink::IoT_sink_generator::sample;
 
 class mycomp {
     bool reverse;
@@ -1960,16 +2002,21 @@ void IoT_device::recv_handler (packet *p){
     // note that packet p will be discarded (deleted) after recv_handler(); you don't need to manually delete it
 }
 
+void IoT_sink::recv_handler (packet *p){}
+
 int main()
 {
     // header::header_generator::print(); // print all registered headers
     // payload::payload_generator::print(); // print all registered payloads
     // packet::packet_generator::print(); // print all registered packets
-    // node::node_generator::print(); // print all registered nodes
+     node::node_generator::print(); // print all registered nodes
     // event::event_generator::print(); // print all registered events
     // link::link_generator::print(); // print all registered links 
     
     // read the input and generate devices
+
+    node::node_generator::generate("IoT_sink",0);
+
     for (unsigned int id = 0; id < 5; id ++){
         
         node::node_generator::generate("IoT_device",id);
