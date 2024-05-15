@@ -120,7 +120,7 @@ public:
 
         // Output the mapping result
         for (int i = 1; i <= numPhysicalQubits; ++i) {
-            cout << nodes[i]->logicalId << " " << i << endl;
+            cout << nodes[i]->logicalId << " " << i << "\n";
         }
     }
 
@@ -220,7 +220,7 @@ public:
             if(phypath.size()>2){
                 auto it = phypath.begin();
                 while(it!=phypath.end()-2){
-                    cout<<"SWAP"<<" q"<< nodes[*it]->logicalId<<" q"<< nodes[*(it+1)]->logicalId<<endl;
+                    cout<<"SWAP"<<" q"<< nodes[*it]->logicalId<<" q"<< nodes[*(it+1)]->logicalId<<"\n";
                     int temp = nodes[*it]->logicalId;
                     nodes[*it]->logicalId = nodes[*(it + 1)]->logicalId;
                     nodes[*(it + 1)]->logicalId = temp;
@@ -322,7 +322,7 @@ signed main() {
         if(g.bidirectional_bfs((*i).logQubitID1, (*i).logQubitID2, numPhysicalQubits)){
             break;
         }
-        cout<<"CNOT"<<" q"<< (*i).logQubitID1<<" q"<< (*i).logQubitID2<<endl;
+        cout<<"CNOT"<<" q"<< (*i).logQubitID1<<" q"<< (*i).logQubitID2<<"\n";
     }
 
     return 0;
