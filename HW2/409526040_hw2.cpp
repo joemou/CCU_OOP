@@ -768,10 +768,8 @@ map<string,node::node_generator*> node::node_generator::prototypes;
 map<unsigned int,node*> node::id_node_table;
 
 class IoT_device: public node {
-        // map<unsigned int,bool> one_hop_neighbors; // you can use this variable to record the node's 1-hop neighbors 
-        
-        bool hi; // this is used for example; you can remove it when doing hw2
-
+        // map<unsigned int,bool> one_hop_neighbors; // you can use this variable to record the node's 1-hop neighbors
+        bool hi;
         unsigned int parent;
         vector<unsigned int> children;
 
@@ -2009,34 +2007,34 @@ int main()
     // header::header_generator::print(); // print all registered headers
     // payload::payload_generator::print(); // print all registered payloads
     // packet::packet_generator::print(); // print all registered packets
-     node::node_generator::print(); // print all registered nodes
+    //node::node_generator::print(); // print all registered nodes
     // event::event_generator::print(); // print all registered events
     // link::link_generator::print(); // print all registered links 
     
     // read the input and generate devices
 
+    int Nodes, Links;
+    int SimTime, BfsStart, Data_Trans;
+    int LinkId, LinkEnd1, LinkEnd2;
+
+    cin >> Nodes >> Links;
+    cin >> SimTime >> BfsStart >> Data_Trans;
+
+
     node::node_generator::generate("IoT_sink",0);
 
-    for (unsigned int id = 0; id < 5; id ++){
+    for (unsigned int id = 0; id < Nodes; id ++){
         
         node::node_generator::generate("IoT_device",id);
         
     }
     
-    // please generate the sink by yourself
-    
-    
-    // set devices' neighbors
-    node::id_to_node(0)->add_phy_neighbor(1);
-    node::id_to_node(1)->add_phy_neighbor(0);
-    node::id_to_node(0)->add_phy_neighbor(2);
-    node::id_to_node(2)->add_phy_neighbor(0);
-    node::id_to_node(1)->add_phy_neighbor(2);
-    node::id_to_node(2)->add_phy_neighbor(1);
-    node::id_to_node(1)->add_phy_neighbor(3);
-    node::id_to_node(3)->add_phy_neighbor(1);
-    node::id_to_node(2)->add_phy_neighbor(4);
-    node::id_to_node(4)->add_phy_neighbor(2);
+
+    for (unsigned int id = 0; id < Links; id ++){
+        cin >> LinkId >> LinkEnd1 >> LinkEnd2;
+        node::id_to_node(LinkEnd1)->add_phy_neighbor(LinkEnd2);
+        node::id_to_node(LinkEnd2)->add_phy_neighbor(LinkEnd1);    
+    }
     
     
     // node 0 broadcasts a msg with counter 0 at time 100
