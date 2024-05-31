@@ -1930,6 +1930,11 @@ void IoT_device::recv_handler (packet *p){
         p3->getHeader()->setDstID ( BROADCAST_ID );
         
         l3->increase();
+
+        //parent
+        //child msg
+
+
         hi = true;
         send_handler(p3);
         // unsigned mat = l3->getMatID();
@@ -2014,19 +2019,17 @@ int main()
     // read the input and generate devices
 
     int Nodes, Links;
-    int SimTime, BfsStart, Data_Trans;
+    int SimTime, BfsStart, DataTrans;
     int LinkId, LinkEnd1, LinkEnd2;
 
     cin >> Nodes >> Links;
-    cin >> SimTime >> BfsStart >> Data_Trans;
+    cin >> SimTime >> BfsStart >> DataTrans;
 
 
     node::node_generator::generate("IoT_sink",0);
 
-    for (unsigned int id = 0; id < Nodes; id ++){
-        
-        node::node_generator::generate("IoT_device",id);
-        
+    for (unsigned int id = 1; id < Nodes; id ++){
+        node::node_generator::generate("IoT_device",id);    
     }
     
 
@@ -2038,13 +2041,16 @@ int main()
     
     
     // node 0 broadcasts a msg with counter 0 at time 100
-    IoT_ctrl_packet_event(0, 100);
+    IoT_ctrl_packet_event(0, BfsStart);
     // 1st parameter: the source; the destination that want to broadcast a msg with counter 0 (i.e., match ID)
     // 2nd parameter: time (optional)
     // 3rd parameter: msg for debug information (optional)
     
     // node 4 sends a packet to node 0 at time 200 --> you need to implement routing tables for IoT_devicees
-    IoT_data_packet_event(4, 0, 200); // IoT_data_packet
+    for (unsigned int id = 1; id < Nodes; id ++){
+        IoT_data_packet_event(id, 0, DataTrans); // IoT_data_packet  
+    }
+    
     // 1st parameter: the source node
     // 2nd parameter: the destination node (sink)
     // 3rd parameter: time (optional)
@@ -2066,8 +2072,13 @@ int main()
     // 5th parameter: msg for debug (optional)
 
     // start simulation!!
-    event::start_simulate(300);
+    event::start_simulate(SimTime);
     // event::flush_events() ;
     // cout << packet::getLivePacketNum() << endl;
+
+    for (int id = 0; id < Nodes; id++){
+        
+    }
+
     return 0;
 }
