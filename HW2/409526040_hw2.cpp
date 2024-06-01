@@ -1985,6 +1985,9 @@ void IoT_device::recv_handler (packet *p){
             counter = l3->getCounter();
             SetParent(p3->getHeader()->getPreID());
 
+            const map<unsigned int, bool> &nblist = getPhyNeighbors();
+            for (map<unsigned int,bool>::const_iterator it = nblist.begin(); it != nblist.end(); it ++)
+
             p3->getHeader()->setPreID ( getNodeID() );
             p3->getHeader()->setNexID ( BROADCAST_ID );
             p3->getHeader()->setDstID ( BROADCAST_ID );
