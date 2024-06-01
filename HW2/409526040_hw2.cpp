@@ -1963,40 +1963,51 @@ void IoT_device::recv_handler (packet *p){
         p3 = dynamic_cast<IoT_ctrl_packet*> (p);
         IoT_ctrl_payload *l3 = nullptr;
         l3 = dynamic_cast<IoT_ctrl_payload*> (p3->getPayload());
-        cout << endl <<getNodeID() << " " << p->getHeader()->getPreID()<<"("<< l3->getCounter() <<")("<<counter<<")"<<endl;
-        if(p->getHeader()->getPreID()==getNodeID ()){
+
+
+        cout << endl <<getNodeID() << " " << p->getHeader()->getPreID()<<"(packe counte "<< l3->getCounter() <<")(on iot"<<counter<<")"<<endl;
+
+        if(l3->getCounter()<counter){
+            hi = false;
+            cout << endl << "counter big than prev\n\n\n\n\n\n\n\n\n\n\n"<<getNodeID() << " " << p->getHeader()->getPreID() << endl;
+        }
+        if(p->getHeader()->getPreID()<GetParent()&&l3->getCounter()==counter){
+            hi = false;
+            cout << "\n\n\n\n" << "id big than store Node:"<<getNodeID() << " packet from who " << p->getHeader()->getPreID() <<" orgpa "<<GetParent()<< endl;
+        }
+        
+        if(hi && FindChild(p->getHeader()->getPreID())){
+            cout << "again fuck\n";
             hi = true;
         }
-        else if(p->getHeader()->getPreID()<GetParent()&&l3->getCounter()==counter){
-            hi = false;
-            cout << endl << "+++++++"<<getNodeID() << " " << p->getHeader()->getPreID() << endl;
+        if(l3->getCounter()>counter){
+            hi = true;
         }
-        else if(l3->getCounter()<counter){
-            hi = false;
-            cout << endl << "******"<<getNodeID() << " " << p->getHeader()->getPreID() << endl;
-        }
-        else if(hi==false){
-            cout << endl << "NEW"<< endl;
-        }
+
 
 
 
         if(!hi){
+            cout << "\nB\n";
             counter = l3->getCounter();
             SetParent(p3->getHeader()->getPreID());
 
             const map<unsigned int, bool> &nblist = getPhyNeighbors();
-            for (map<unsigned int,bool>::const_iterator it = nblist.begin(); it != nblist.end(); it ++)
+            for (map<unsigned int, bool>::const_iterator it = nblist.begin(); it != nblist.end(); it++)
+            {
+                if(it->second){
+                    AddChild(it->first);
+                }
+            }
 
             p3->getHeader()->setPreID ( getNodeID() );
             p3->getHeader()->setNexID ( BROADCAST_ID );
             p3->getHeader()->setDstID ( BROADCAST_ID );
 
             l3->increase();
-            //parent
-        //children msg 
 
-        hi = true;
+
+            hi = true;
             send_handler(p3);
 
         } 
@@ -2130,7 +2141,7 @@ int main()
     
     // read the input and generate devices
 
-    int Nodes, Links;
+    unsigned int Nodes, Links;
     int SimTime, BfsStart, DataTrans;
     int LinkId, LinkEnd1, LinkEnd2;
 
@@ -2191,7 +2202,7 @@ int main()
     // cout << packet::getLivePacketNum() << endl;
 
     cout << "0 0\n";
-    for (int id = 1; id < Nodes; id++){
+    for (unsigned int id = 1; id < Nodes; id++){
         cout << id << " ";
         cout<<dynamic_cast<IoT_device *>(node::id_to_node(id))->GetParent();
         cout << "\n";
