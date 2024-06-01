@@ -6,6 +6,7 @@
 #include <functional>
 #include <iomanip>
 #include <stack>
+#include <unordered_set>
 
 
 using namespace std;
@@ -768,11 +769,10 @@ map<string,node::node_generator*> node::node_generator::prototypes;
 map<unsigned int,node*> node::id_node_table;
 
 class IoT_device: public node {
-        // map<unsigned int,bool> one_hop_neighbors; // you can use this variable to record the node's 1-hop neighbors 
+        // map<unsigned int,bool> one_hop_neighbors; // you can use this variable to record the node's 1-hop neighbors
+        bool hi;
+        unsigned int parent=99999;
         
-        bool hi; // this is used for example; you can remove it when doing hw2
-
-        unsigned int parent;
         vector<unsigned int> children;
 
     protected:
@@ -781,6 +781,31 @@ class IoT_device: public node {
         IoT_device(unsigned int _id): node(_id), hi(false) {} // this constructor cannot be directly called by users
     
     public:
+        unsigned int GetParent() { return parent; }
+        void SetParent(unsigned int p) { parent = p; }
+
+        void AddChild(unsigned int c) { children.push_back(c); }
+        void DeleChild(unsigned int c) { 
+            vector<unsigned int>::iterator it = remove(children.begin(), children.end(), c);
+            if (it != children.end()) {
+                // Use erase to remove the elements from the vector
+                children.erase(it, children.end());
+            } else {
+                cout << "ID " << c << " not found" << endl;
+            }
+        
+        }
+        bool FindChild(unsigned int c) {  
+            vector<unsigned int>::iterator it = find(children.begin(), children.end(), c);
+            if(it!=children.end()){
+                return true;
+            }
+            else{
+                return false;
+            }
+        }
+
+
         ~IoT_device(){}
         string type() { return "IoT_device"; }
         
@@ -803,6 +828,9 @@ class IoT_device: public node {
                 virtual string type() { return "IoT_device";}
                 ~IoT_device_generator(){}
         };
+
+
+        unsigned int counter=99999;
 };
 IoT_device::IoT_device_generator IoT_device::IoT_device_generator::sample;
 
@@ -1913,6 +1941,9 @@ void node::send(packet *p){ // this function is called by event; not for the use
 
 // you have to write the code in recv_handler of IoT_device
 void IoT_device::recv_handler (packet *p){
+    
+
+
     // in this function, you are "not" allowed to use node::id_to_node(id) !!!!!!!!
 
     // this is a simple example
@@ -1920,29 +1951,61 @@ void IoT_device::recv_handler (packet *p){
     // the variable hi is used to examine whether the packet has been received by this node before
     // you can remove the variable hi and create your own routing table in class IoT_device
     if (p == nullptr) return ;
-    
-    if (p->type() == "IoT_ctrl_packet" && !hi ) { // the device receives a packet from the sink
+
+    //examine whether preID is smaller
+    if(p->getHeader()->getPreID()<GetParent()){
+        hi = false;
+    }
+
+
+    if (p->type() == "IoT_ctrl_packet") { // the device receives a packet from the sink
         IoT_ctrl_packet *p3 = nullptr;
         p3 = dynamic_cast<IoT_ctrl_packet*> (p);
         IoT_ctrl_payload *l3 = nullptr;
         l3 = dynamic_cast<IoT_ctrl_payload*> (p3->getPayload());
-        
-        p3->getHeader()->setPreID ( getNodeID() );
-        p3->getHeader()->setNexID ( BROADCAST_ID );
-        p3->getHeader()->setDstID ( BROADCAST_ID );
-        
-        l3->increase();
-        //parent
+        cout << endl <<getNodeID() << " " << p->getHeader()->getPreID()<<"("<< l3->getCounter() <<")("<<counter<<")"<<endl;
+        if(p->getHeader()->getPreID()==getNodeID ()){
+            hi = true;
+        }
+        else if(p->getHeader()->getPreID()<GetParent()&&l3->getCounter()==counter){
+            hi = false;
+            cout << endl << "+++++++"<<getNodeID() << " " << p->getHeader()->getPreID() << endl;
+        }
+        else if(l3->getCounter()<counter){
+            hi = false;
+            cout << endl << "******"<<getNodeID() << " " << p->getHeader()->getPreID() << endl;
+        }
+        else if(hi==false){
+            cout << endl << "NEW"<< endl;
+        }
+
+
+
+        if(!hi){
+            counter = l3->getCounter();
+            SetParent(p3->getHeader()->getPreID());
+
+            const map<unsigned int, bool> &nblist = getPhyNeighbors();
+            for (map<unsigned int,bool>::const_iterator it = nblist.begin(); it != nblist.end(); it ++)
+
+            p3->getHeader()->setPreID ( getNodeID() );
+            p3->getHeader()->setNexID ( BROADCAST_ID );
+            p3->getHeader()->setDstID ( BROADCAST_ID );
+
+            l3->increase();
+            //parent
         //children msg 
 
         hi = true;
-        send_handler(p3);
-        // unsigned mat = l3->getMatID();
+            send_handler(p3);
+
+        } 
+        //unsigned mat = l3->getMatID();
         // unsigned act = l3->getActID();
         // string msg = l3->getMsg(); // get the msg
     }
     else if (p->type() == "IoT_data_packet" ) { // the device receives a packet
-        // cout << "node " << getNodeID() << " send the packet" << endl;
+        cout << "node " << getNodeID() << " send the packet" << endl;
     }
     else if (p->type() == "AGG_ctrl_packet") {
         AGG_ctrl_packet *p3 = nullptr;
@@ -2005,51 +2068,103 @@ void IoT_device::recv_handler (packet *p){
     // note that packet p will be discarded (deleted) after recv_handler(); you don't need to manually delete it
 }
 
-void IoT_sink::recv_handler (packet *p){}
+void IoT_sink::recv_handler (packet *p){
+
+        // in this function, you are "not" allowed to use node::id_to_node(id) !!!!!!!!
+
+    // this is a simple example
+    // node 0 broadcasts its message to every node and every node relays the packet "only once" and increases its counter
+    // the variable hi is used to examine whether the packet has been received by this node before
+    // you can remove the variable hi and create your own routing table in class IoT_device
+    if (p == nullptr) return ;
+
+
+    
+    if (p->type() == "IoT_ctrl_packet" && !hi ) { // the device receives a packet from the sink
+        IoT_ctrl_packet *p3 = nullptr;
+        p3 = dynamic_cast<IoT_ctrl_packet*> (p);
+        IoT_ctrl_payload *l3 = nullptr;
+        l3 = dynamic_cast<IoT_ctrl_payload*> (p3->getPayload());
+        
+        p3->getHeader()->setPreID ( getNodeID() );
+        p3->getHeader()->setNexID ( BROADCAST_ID );
+        p3->getHeader()->setDstID ( BROADCAST_ID );
+        
+        l3->increase();
+        hi = true;
+        send_handler(p3); 
+
+        //unsigned mat = l3->getMatID();
+        // unsigned act = l3->getActID();
+        // string msg = l3->getMsg(); // get the msg
+    }
+    else if (p->type() == "IoT_data_packet" ) { // the device receives a packet
+        // cout << "node " << getNodeID() << " send the packet" << endl;
+    }
+    else if (p->type() == "AGG_ctrl_packet") {
+        AGG_ctrl_packet *p3 = nullptr;
+        p3 = dynamic_cast<AGG_ctrl_packet*> (p);
+        AGG_ctrl_payload *l3 = nullptr;
+        l3 = dynamic_cast<AGG_ctrl_payload*> (p3->getPayload());
+        
+        // cout << "node id = " << getNodeID() << ", msg = "  << l3->getMsg() << endl;
+    }
+    else if (p->type() == "DIS_ctrl_packet") {
+        DIS_ctrl_packet *p3 = nullptr;
+        p3 = dynamic_cast<DIS_ctrl_packet*> (p);
+        DIS_ctrl_payload *l3 = nullptr;
+        l3 = dynamic_cast<DIS_ctrl_payload*> (p3->getPayload());
+        
+        // cout << "node id = " << getNodeID() << ", parent = "  << l3->getParent() << endl;
+    }
+}
 
 int main()
 {
     // header::header_generator::print(); // print all registered headers
     // payload::payload_generator::print(); // print all registered payloads
     // packet::packet_generator::print(); // print all registered packets
-     node::node_generator::print(); // print all registered nodes
+    //node::node_generator::print();// print all registered nodes
     // event::event_generator::print(); // print all registered events
     // link::link_generator::print(); // print all registered links 
     
     // read the input and generate devices
 
+    int Nodes, Links;
+    int SimTime, BfsStart, DataTrans;
+    int LinkId, LinkEnd1, LinkEnd2;
+
+    cin >> Nodes >> Links;
+    cin >> SimTime >> BfsStart >> DataTrans;
+
+
     node::node_generator::generate("IoT_sink",0);
 
-    for (unsigned int id = 0; id < 5; id ++){
-        
-        node::node_generator::generate("IoT_device",id);
-        
+    for (unsigned int id = 1; id < Nodes; id ++){
+        node::node_generator::generate("IoT_device",id);    
     }
     
-    // please generate the sink by yourself
+
+    for (unsigned int id = 0; id < Links; id ++){
+        cin >> LinkId >> LinkEnd1 >> LinkEnd2;
+        node::id_to_node(LinkEnd1)->add_phy_neighbor(LinkEnd2);
+        node::id_to_node(LinkEnd2)->add_phy_neighbor(LinkEnd1);    
+    }
+
     
-    
-    // set devices' neighbors
-    node::id_to_node(0)->add_phy_neighbor(1);
-    node::id_to_node(1)->add_phy_neighbor(0);
-    node::id_to_node(0)->add_phy_neighbor(2);
-    node::id_to_node(2)->add_phy_neighbor(0);
-    node::id_to_node(1)->add_phy_neighbor(2);
-    node::id_to_node(2)->add_phy_neighbor(1);
-    node::id_to_node(1)->add_phy_neighbor(3);
-    node::id_to_node(3)->add_phy_neighbor(1);
-    node::id_to_node(2)->add_phy_neighbor(4);
-    node::id_to_node(4)->add_phy_neighbor(2);
     
     
     // node 0 broadcasts a msg with counter 0 at time 100
-    IoT_ctrl_packet_event(0, 100);
+    IoT_ctrl_packet_event(0, BfsStart);
     // 1st parameter: the source; the destination that want to broadcast a msg with counter 0 (i.e., match ID)
     // 2nd parameter: time (optional)
     // 3rd parameter: msg for debug information (optional)
     
     // node 4 sends a packet to node 0 at time 200 --> you need to implement routing tables for IoT_devicees
-    IoT_data_packet_event(4, 0, 200); // IoT_data_packet
+    for (unsigned int id = 1; id < Nodes; id ++){
+        IoT_data_packet_event(id, 0, DataTrans); // IoT_data_packet  
+    }
+    
     // 1st parameter: the source node
     // 2nd parameter: the destination node (sink)
     // 3rd parameter: time (optional)
@@ -2071,8 +2186,16 @@ int main()
     // 5th parameter: msg for debug (optional)
 
     // start simulation!!
-    event::start_simulate(300);
+    event::start_simulate(SimTime);
     // event::flush_events() ;
     // cout << packet::getLivePacketNum() << endl;
+
+    cout << "0 0\n";
+    for (int id = 1; id < Nodes; id++){
+        cout << id << " ";
+        cout<<dynamic_cast<IoT_device *>(node::id_to_node(id))->GetParent();
+        cout << "\n";
+    }
+
     return 0;
 }
