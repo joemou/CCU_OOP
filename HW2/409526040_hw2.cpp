@@ -802,8 +802,6 @@ class IoT_device: public node {
             if (it != children.end()) {
                 // Use erase to remove the elements from the vector
                 children.erase(it, children.end());
-            } else {
-                cout << "ID " << c << " not found" << endl;
             }
         
         }
@@ -827,6 +825,16 @@ class IoT_device: public node {
                 cout << children[i];
             }
             cout << "\n";
+        }
+
+            bool IsThereChild(){
+            if(children.size()==0){
+                return false;
+            }
+            else{
+                return true;
+            }
+
         }
 
         bool FindConnect(unsigned int c) {  
@@ -1988,10 +1996,12 @@ void IoT_device::recv_handler (packet *p){
     // you can remove the variable hi and create your own routing table in class IoT_device
     if (p == nullptr) return ;
 
+    /*
     //examine whether preID is smaller
     if(p->getHeader()->getPreID()<GetParent()){
         hi = false;
     }
+    */
 
 
     if (p->type() == "IoT_ctrl_packet") { // the device receives a packet from the sink
@@ -2002,24 +2012,24 @@ void IoT_device::recv_handler (packet *p){
 
         int visa = p3->getHeader()->getVisa();
 
-        cout << "visa value: " << visa << endl;
+        //cout << "visa value: " << visa << endl;
 
 
-        cout << endl <<getNodeID() << " " << p->getHeader()->getPreID()<<"(packe counte "<< l3->getCounter() <<")(on iot"<<counter<<")"<<endl;
+        //cout << endl <<getNodeID() << " " << p->getHeader()->getPreID()<<"(packe counte "<< l3->getCounter() <<")(on iot"<<counter<<")"<<endl;
 
 
 
         if(l3->getCounter()<counter){
             hi = false;
-            cout << endl << "counter big than prev\n\n\n\n\n\n\n\n\n\n\n"<<getNodeID() << " " << p->getHeader()->getPreID() << endl;
+            //cout << endl << "counter big than prev\n\n\n\n\n\n\n\n\n\n\n"<<getNodeID() << " " << p->getHeader()->getPreID() << endl;
         }
         if(p->getHeader()->getPreID()<GetParent()&&l3->getCounter()==counter){
             hi = false;
-            cout << "\n\n\n\n" << "id big than store Node:"<<getNodeID() << " packet from who " << p->getHeader()->getPreID() <<" orgpa "<<GetParent()<< endl;
+            //cout << "\n\n\n\n" << "id big than store Node:"<<getNodeID() << " packet from who " << p->getHeader()->getPreID() <<" orgpa "<<GetParent()<< endl;
         }
         
         if(hi && FindConnect(p->getHeader()->getPreID())){
-            cout << "again fuck\n";
+            //cout << "again fuck\n";
             hi = true;
         }
         if(l3->getCounter()>counter){
@@ -2038,13 +2048,13 @@ void IoT_device::recv_handler (packet *p){
             DeleChild(p3->getHeader()->getPreID());
             hi = true;
         }
-        cout << "{Now node}" << getNodeID() << ":\n";
-        DisplayChildren();
+        //cout << "{Now node}" << getNodeID() << ":\n";
+        //DisplayChildren();
 
 
         // setVisa 0 is normal 1 is ack 2 is notify child bye
         if(!hi){
-            cout << "\nB\n";
+            //cout << "\nB\n";
             counter = l3->getCounter();
 
             p3->getHeader()->setParent(p->getHeader()->getPreID());
@@ -2083,7 +2093,21 @@ void IoT_device::recv_handler (packet *p){
         // string msg = l3->getMsg(); // get the msg
     }
     else if (p->type() == "IoT_data_packet" ) { // the device receives a packet
-        cout << "node " << getNodeID() << " send the packet" << endl;
+        //cout << "node " << getNodeID() << " send the packet" << endl;
+        IoT_data_packet *p3 = nullptr;
+        p3 = dynamic_cast<IoT_data_packet*> (p);
+
+        if(IsThereChild()){
+            //dele the child to record whether get each child packer
+            DeleChild(p3->getHeader()->getPreID());
+        }
+        if(!IsThereChild()){
+            p3->getHeader()->setPreID ( getNodeID() );
+            p3->getHeader()->setNexID ( GetParent());
+            p3->getHeader()->setDstID ( 0 );
+            send_handler(p3);
+        }
+        
         
     }
     else if (p->type() == "AGG_ctrl_packet") {
@@ -2255,13 +2279,13 @@ int main()
 
     
     
-    AGG_ctrl_packet_event(4, 0, 250);
+    //AGG_ctrl_packet_event(4, 0, 250);
     // 1st parameter: the source node
     // 2nd parameter: the destination node (sink)
     // 3rd parameter: time (optional)
     // 4th parameter: msg (for storing nb list)
     
-    DIS_ctrl_packet_event(0, 260);
+    //DIS_ctrl_packet_event(0, 260);
     // 1st parameter: the source node (sink)
     // 2nd parameter: the destination node
     // 3rd parameter: parent 
@@ -2273,11 +2297,15 @@ int main()
     // event::flush_events() ;
     // cout << packet::getLivePacketNum() << endl;
 
+    
     for (unsigned int id = 1; id < Nodes; id++){
         cout << id << " ";
         dynamic_cast<IoT_device *>(node::id_to_node(id))->DisplayChildren();
+        //cout<<dynamic_cast<IoT_device *>(node::id_to_node(id))->GetParent();
         cout << "\n";
     }
+    
+    
 
     cout << "0 0\n";
     for (unsigned int id = 1; id < Nodes; id++){
