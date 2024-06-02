@@ -41,13 +41,6 @@ class header {
         GET(getPreID, unsigned int , preID);
         GET(getNexID, unsigned int , nexID);
         
-        SET(setVisa, unsigned int , Visa, _Visa);
-        GET(getVisa, unsigned int , Visa);
-        SET(setParent, unsigned int , Parent, _Parent);
-        GET(getParent, unsigned int , Parent);
-        SET(setOldparent, unsigned int , Oldparent, _Oldparent);
-        GET(getOldparent, unsigned int , Oldparent);
-
         virtual string type() = 0;
         
         // factory concept: generate a header
@@ -83,16 +76,13 @@ class header {
         };
         
     protected:
-        header():srcID(BROADCAST_ID),dstID(BROADCAST_ID),preID(BROADCAST_ID),nexID(BROADCAST_ID),Visa(0),Parent(BROADCAST_ID),Oldparent(BROADCAST_ID){} // this constructor cannot be directly called by users
+        header():srcID(BROADCAST_ID),dstID(BROADCAST_ID),preID(BROADCAST_ID),nexID(BROADCAST_ID){} // this constructor cannot be directly called by users
 
     private:
         unsigned int srcID;
         unsigned int dstID;
         unsigned int preID;
         unsigned int nexID;
-        unsigned int Visa;
-        unsigned int Parent;
-        unsigned int Oldparent;
         header(header&){} // this constructor cannot be directly called by users
 };
 map<string,header::header_generator*> header::header_generator::prototypes;
@@ -784,7 +774,6 @@ class IoT_device: public node {
         unsigned int parent=99999;
         
         vector<unsigned int> children;
-        vector<unsigned int> phyconnect;
 
     protected:
         IoT_device() {} // it should not be used
@@ -796,7 +785,6 @@ class IoT_device: public node {
         void SetParent(unsigned int p) { parent = p; }
 
         void AddChild(unsigned int c) { children.push_back(c); }
-        void AddConnect(unsigned int c) { phyconnect.push_back(c); }
         void DeleChild(unsigned int c) { 
             vector<unsigned int>::iterator it = remove(children.begin(), children.end(), c);
             if (it != children.end()) {
@@ -810,28 +798,6 @@ class IoT_device: public node {
         bool FindChild(unsigned int c) {  
             vector<unsigned int>::iterator it = find(children.begin(), children.end(), c);
             if(it!=children.end()){
-                return true;
-            }
-            else{
-                return false;
-            }
-        }
-        void DisplayChildren(){
-            if(children.size()==0){
-                cout << "no child\n";
-            }
-            for (size_t i = 0; i < children.size(); ++i) {
-                if (i != 0) {
-                    cout<< ", ";
-                }
-                cout << children[i];
-            }
-            cout << "\n";
-        }
-
-        bool FindConnect(unsigned int c) {  
-            vector<unsigned int>::iterator it = find(phyconnect.begin(),phyconnect.end(), c);
-            if(it!=phyconnect.end()){
                 return true;
             }
             else{
@@ -865,7 +831,6 @@ class IoT_device: public node {
 
 
         unsigned int counter=99999;
-        
 };
 IoT_device::IoT_device_generator IoT_device::IoT_device_generator::sample;
 
@@ -1978,7 +1943,6 @@ void node::send(packet *p){ // this function is called by event; not for the use
 void IoT_device::recv_handler (packet *p){
     
 
-    
 
     // in this function, you are "not" allowed to use node::id_to_node(id) !!!!!!!!
 
@@ -2000,14 +1964,8 @@ void IoT_device::recv_handler (packet *p){
         IoT_ctrl_payload *l3 = nullptr;
         l3 = dynamic_cast<IoT_ctrl_payload*> (p3->getPayload());
 
-        int visa = p3->getHeader()->getVisa();
-
-        cout << "visa value: " << visa << endl;
-
 
         cout << endl <<getNodeID() << " " << p->getHeader()->getPreID()<<"(packe counte "<< l3->getCounter() <<")(on iot"<<counter<<")"<<endl;
-
-
 
         if(l3->getCounter()<counter){
             hi = false;
@@ -2018,7 +1976,7 @@ void IoT_device::recv_handler (packet *p){
             cout << "\n\n\n\n" << "id big than store Node:"<<getNodeID() << " packet from who " << p->getHeader()->getPreID() <<" orgpa "<<GetParent()<< endl;
         }
         
-        if(hi && FindConnect(p->getHeader()->getPreID())){
+        if(hi && FindChild(p->getHeader()->getPreID())){
             cout << "again fuck\n";
             hi = true;
         }
@@ -2026,54 +1984,29 @@ void IoT_device::recv_handler (packet *p){
             hi = true;
         }
 
-        if(visa==1 && getNodeID() == p3->getHeader()->getParent()){
-            AddChild(p3->getHeader()->getPreID());
-            hi = true;
-        }
-        if(visa==2 && getNodeID() == p3->getHeader()->getParent()){
-            AddChild(p3->getHeader()->getPreID());  
-            hi = true;
-        }
-        if(visa==2 && getNodeID() == p3->getHeader()->getOldparent()){
-            DeleChild(p3->getHeader()->getPreID());
-            hi = true;
-        }
-        cout << "{Now node}" << getNodeID() << ":\n";
-        DisplayChildren();
 
 
-        // setVisa 0 is normal 1 is ack 2 is notify child bye
+
         if(!hi){
             cout << "\nB\n";
             counter = l3->getCounter();
-
-            p3->getHeader()->setParent(p->getHeader()->getPreID());
-            
-            if(GetParent()==99999){
-                p3->getHeader()->setVisa ( 1 );
-            }
-            else{
-                p3->getHeader()->setVisa ( 2 );
-                p3->getHeader()->setOldparent(GetParent()); 
-            }
-
-        
-
-            SetParent(p3->getHeader()->getPreID());//set new parent
+            SetParent(p3->getHeader()->getPreID());
 
             const map<unsigned int, bool> &nblist = getPhyNeighbors();
             for (map<unsigned int, bool>::const_iterator it = nblist.begin(); it != nblist.end(); it++)
             {
                 if(it->second){
-                    AddConnect(it->first);
+                    AddChild(it->first);
                 }
             }
 
-            //Org Broadcast
             p3->getHeader()->setPreID ( getNodeID() );
             p3->getHeader()->setNexID ( BROADCAST_ID );
             p3->getHeader()->setDstID ( BROADCAST_ID );
+
             l3->increase();
+
+
             hi = true;
             send_handler(p3);
 
@@ -2084,7 +2017,6 @@ void IoT_device::recv_handler (packet *p){
     }
     else if (p->type() == "IoT_data_packet" ) { // the device receives a packet
         cout << "node " << getNodeID() << " send the packet" << endl;
-        
     }
     else if (p->type() == "AGG_ctrl_packet") {
         AGG_ctrl_packet *p3 = nullptr;
@@ -2238,21 +2170,17 @@ int main()
     // 1st parameter: the source; the destination that want to broadcast a msg with counter 0 (i.e., match ID)
     // 2nd parameter: time (optional)
     // 3rd parameter: msg for debug information (optional)
-
-
-
     
     // node 4 sends a packet to node 0 at time 200 --> you need to implement routing tables for IoT_devicees
     for (unsigned int id = 1; id < Nodes; id ++){
         IoT_data_packet_event(id, 0, DataTrans); // IoT_data_packet  
     }
-
+    
     // 1st parameter: the source node
     // 2nd parameter: the destination node (sink)
     // 3rd parameter: time (optional)
     // 4th parameter: msg for debug (optional)
     
-
     
     
     AGG_ctrl_packet_event(4, 0, 250);
@@ -2272,12 +2200,6 @@ int main()
     event::start_simulate(SimTime);
     // event::flush_events() ;
     // cout << packet::getLivePacketNum() << endl;
-
-    for (unsigned int id = 1; id < Nodes; id++){
-        cout << id << " ";
-        dynamic_cast<IoT_device *>(node::id_to_node(id))->DisplayChildren();
-        cout << "\n";
-    }
 
     cout << "0 0\n";
     for (unsigned int id = 1; id < Nodes; id++){
