@@ -47,6 +47,10 @@ class header {
         GET(getParent, unsigned int , Parent);
         SET(setOldparent, unsigned int , Oldparent, _Oldparent);
         GET(getOldparent, unsigned int , Oldparent);
+        SET(setCustomPacket, unsigned int , CustomPacket, _CustomPacket);
+        GET(getCustomPacket, unsigned int , CustomPacket);
+
+        
 
         virtual string type() = 0;
         
@@ -83,7 +87,7 @@ class header {
         };
         
     protected:
-        header():srcID(BROADCAST_ID),dstID(BROADCAST_ID),preID(BROADCAST_ID),nexID(BROADCAST_ID),Visa(0),Parent(BROADCAST_ID),Oldparent(BROADCAST_ID){} // this constructor cannot be directly called by users
+        header():srcID(BROADCAST_ID),dstID(BROADCAST_ID),preID(BROADCAST_ID),nexID(BROADCAST_ID),Visa(0),Parent(BROADCAST_ID),Oldparent(BROADCAST_ID),CustomPacket(0){} // this constructor cannot be directly called by users
 
     private:
         unsigned int srcID;
@@ -93,7 +97,8 @@ class header {
         unsigned int Visa;
         unsigned int Parent;
         unsigned int Oldparent;
-        header(header&){} // this constructor cannot be directly called by users
+        unsigned int CustomPacket;
+        header(header &) {} // this constructor cannot be directly called by users
 };
 map<string,header::header_generator*> header::header_generator::prototypes;
 
@@ -781,8 +786,8 @@ map<unsigned int,node*> node::id_node_table;
 class IoT_device: public node {
         // map<unsigned int,bool> one_hop_neighbors; // you can use this variable to record the node's 1-hop neighbors
         bool hi;
-        unsigned int parent=99999;
-        
+
+        unsigned parent;
         vector<unsigned int> children;
         vector<unsigned int> phyconnect;
 
@@ -873,7 +878,8 @@ class IoT_device: public node {
 
 
         unsigned int counter=99999;
-        map<unsigned int,set<unsigned int>> child;
+        map<int, bool> processedPackets;
+        
 
         
 };
@@ -2005,6 +2011,7 @@ void IoT_device::recv_handler (packet *p){
         l3 = dynamic_cast<IoT_ctrl_payload*> (p3->getPayload());
 
         int visa = p3->getHeader()->getVisa();
+        int packetid = p3->getHeader()->getCustomPacket();
 
         //cout << "visa value: " << visa << endl;
 
@@ -2036,28 +2043,20 @@ void IoT_device::recv_handler (packet *p){
             hi = true;
         }
         if(visa==2 && getNodeID() == p3->getHeader()->getParent()){
-            cout<<"===" << getNodeID()<<"add"<<p3->getHeader()->getPreID();
+            //cout<<"===" << getNodeID()<<"add"<<p3->getHeader()->getPreID();
             AddChild(p3->getHeader()->getPreID());  
             hi = true;
         }
         if(visa==2 && getNodeID() == p3->getHeader()->getOldparent()){
-            cout<<"===" << getNodeID()<<"kill"<<p3->getHeader()->getPreID();
+            //cout<<"===" << getNodeID()<<"kill"<<p3->getHeader()->getPreID();
             DeleChild(p3->getHeader()->getPreID());
             hi = true;
         }
-        cout << "1. {Now node}" << getNodeID() << "{visa}" << p3->getHeader()->getVisa()<< "{prev}" << p3->getHeader()->getPreID()<< "{parent}" <<  p3->getHeader()->getParent()<< "{old}" << p3->getHeader()->getOldparent()<< "\n";
+        //cout << "1. {Now node}" << getNodeID() << "{visa}" << p3->getHeader()->getVisa()<< "{prev}" << p3->getHeader()->getPreID()<< "{parent}" <<  p3->getHeader()->getParent()<< "{old}" << p3->getHeader()->getOldparent()<< "\n";
 
-        DisplayChildren();
+        //DisplayChildren();
 
-        for (unsigned int id = 1; id < 8; id++)
-        {
-            cout << id << " ";
-            dynamic_cast<IoT_device *>(node::id_to_node(id))->DisplayChildren();
-            // cout<<dynamic_cast<IoT_device *>(node::id_to_node(id))->GetParent();
-            cout << "\n";
-            }
-
-
+    
         // setVisa 0 is normal 1 is ack 2 is notify child bye
         if(!hi){
             //cout << "\nB\n";
@@ -2073,11 +2072,10 @@ void IoT_device::recv_handler (packet *p){
                 
             }
             //out << "2. {Now node}" << getNodeID() << "{visa}" << p3->getHeader()->getVisa()<< "{prev}" << p3->getHeader()->getPreID()<< "{parent}" <<  p3->getHeader()->getParent()<< "{old}" << p3->getHeader()->getOldparent()<< "\n";
-
-        
-
-            SetParent(p3->getHeader()->getPreID());//set new parent
-
+            packetid++;
+            p3->getHeader()->setCustomPacket(packetid);
+            SetParent(p3->getHeader()->getPreID()); // set new parent
+            processedPackets[packetid] = true;
             const map<unsigned int, bool> &nblist = getPhyNeighbors();
             for (map<unsigned int, bool>::const_iterator it = nblist.begin(); it != nblist.end(); it++)
             {
@@ -2101,7 +2099,7 @@ void IoT_device::recv_handler (packet *p){
     }
     else if (p->type() == "IoT_data_packet" ) { // the device receives a packet
         
-        /*
+        
         //cout << "node " << getNodeID() << " send the packet" << endl;
         IoT_data_packet *p3 = nullptr;
         p3 = dynamic_cast<IoT_data_packet*> (p);
@@ -2116,7 +2114,7 @@ void IoT_device::recv_handler (packet *p){
             p3->getHeader()->setDstID ( 0 );
             send_handler(p3);
         }
-        */
+        
         
         
     }
