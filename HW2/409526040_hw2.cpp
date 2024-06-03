@@ -1994,15 +1994,7 @@ void IoT_device::recv_handler (packet *p){
     // node 0 broadcasts its message to every node and every node relays the packet "only once" and increases its counter
     // the variable hi is used to examine whether the packet has been received by this node before
     // you can remove the variable hi and create your own routing table in class IoT_device
-    if (p == nullptr) return ;
-
-    /*
-    //examine whether preID is smaller
-    if(p->getHeader()->getPreID()<GetParent()){
-        hi = false;
-    }
-    */
-
+    if (p == nullptr) return;
 
     if (p->type() == "IoT_ctrl_packet") { // the device receives a packet from the sink
         IoT_ctrl_packet *p3 = nullptr;
@@ -2038,18 +2030,30 @@ void IoT_device::recv_handler (packet *p){
 
         if(visa==1 && getNodeID() == p3->getHeader()->getParent()){
             AddChild(p3->getHeader()->getPreID());
+
             hi = true;
         }
         if(visa==2 && getNodeID() == p3->getHeader()->getParent()){
+            cout<<"===" << getNodeID()<<"add"<<p3->getHeader()->getPreID();
             AddChild(p3->getHeader()->getPreID());  
             hi = true;
         }
         if(visa==2 && getNodeID() == p3->getHeader()->getOldparent()){
+            cout<<"===" << getNodeID()<<"kill"<<p3->getHeader()->getPreID();
             DeleChild(p3->getHeader()->getPreID());
             hi = true;
         }
         //cout << "{Now node}" << getNodeID() << ":\n";
         //DisplayChildren();
+
+        cout << "\n%%" << p3->getHeader()->getVisa()<<"\n";
+        for (unsigned int id = 1; id < 8; id++)
+        {
+            cout << id << " ";
+            dynamic_cast<IoT_device *>(node::id_to_node(id))->DisplayChildren();
+            // cout<<dynamic_cast<IoT_device *>(node::id_to_node(id))->GetParent();
+            cout << "\n";
+            }
 
 
         // setVisa 0 is normal 1 is ack 2 is notify child bye
@@ -2093,6 +2097,8 @@ void IoT_device::recv_handler (packet *p){
         // string msg = l3->getMsg(); // get the msg
     }
     else if (p->type() == "IoT_data_packet" ) { // the device receives a packet
+        
+        /*
         //cout << "node " << getNodeID() << " send the packet" << endl;
         IoT_data_packet *p3 = nullptr;
         p3 = dynamic_cast<IoT_data_packet*> (p);
@@ -2107,6 +2113,7 @@ void IoT_device::recv_handler (packet *p){
             p3->getHeader()->setDstID ( 0 );
             send_handler(p3);
         }
+        */
         
         
     }
