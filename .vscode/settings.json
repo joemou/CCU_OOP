@@ -40,6 +40,8 @@
       "system_error": "cpp",
       "random": "cpp",
       "*.tcc": "cpp",
-      "utility": "cpp"
+      "utility": "cpp",
+      "ostream": "cpp",
+      "tuple": "cpp"
     }
   }
