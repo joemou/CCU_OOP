@@ -8,7 +8,6 @@
 #include <stack>
 #include <unordered_set>
 #include <set>
-#include <algorithm>
 
 using namespace std;
 
@@ -875,7 +874,8 @@ class IoT_device: public node {
 
         unsigned int counter=99999;
         map<unsigned int,set<unsigned int>> child;
-        int flag = -1;
+
+        
 };
 IoT_device::IoT_device_generator IoT_device::IoT_device_generator::sample;
 
@@ -2030,33 +2030,32 @@ void IoT_device::recv_handler (packet *p){
             hi = true;
         }
 
-        if(visa==1 && getNodeID() == p3->getHeader()->getParent()&&flag!=1){
-            //AddChild(p3->getHeader()->getPreID());
+        if(visa==1 && getNodeID() == p3->getHeader()->getParent()){
+            AddChild(p3->getHeader()->getPreID());
 
             hi = true;
         }
         if(visa==2 && getNodeID() == p3->getHeader()->getParent()){
-            //cout<<"===" << getNodeID()<<"add"<<p3->getHeader()->getPreID();
+            cout<<"===" << getNodeID()<<"add"<<p3->getHeader()->getPreID();
             AddChild(p3->getHeader()->getPreID());  
             hi = true;
         }
         if(visa==2 && getNodeID() == p3->getHeader()->getOldparent()){
-            //cout<<"===" << getNodeID()<<"kill"<<p3->getHeader()->getPreID();
+            cout<<"===" << getNodeID()<<"kill"<<p3->getHeader()->getPreID();
             DeleChild(p3->getHeader()->getPreID());
-            flag = 1;
             hi = true;
         }
-        //cout << "1. {Now node}" << getNodeID() << "{visa}" << p3->getHeader()->getVisa()<< "{prev}" << p3->getHeader()->getPreID()<< "{parent}" <<  p3->getHeader()->getParent()<< "{old}" << p3->getHeader()->getOldparent()<< "\n";
+        cout << "1. {Now node}" << getNodeID() << "{visa}" << p3->getHeader()->getVisa()<< "{prev}" << p3->getHeader()->getPreID()<< "{parent}" <<  p3->getHeader()->getParent()<< "{old}" << p3->getHeader()->getOldparent()<< "\n";
 
-        //DisplayChildren();
+        DisplayChildren();
 
-        //for (unsigned int id = 1; id < 8; id++)
-        //{
-            //cout << id << " ";
-            //dynamic_cast<IoT_device *>(node::id_to_node(id))->DisplayChildren();
-            //// cout<<dynamic_cast<IoT_device *>(node::id_to_node(id))->GetParent();
-            //cout << "\n";
-        //}
+        for (unsigned int id = 1; id < 8; id++)
+        {
+            cout << id << " ";
+            dynamic_cast<IoT_device *>(node::id_to_node(id))->DisplayChildren();
+            // cout<<dynamic_cast<IoT_device *>(node::id_to_node(id))->GetParent();
+            cout << "\n";
+            }
 
 
         // setVisa 0 is normal 1 is ack 2 is notify child bye
@@ -2086,7 +2085,7 @@ void IoT_device::recv_handler (packet *p){
                     AddConnect(it->first);
                 }
             }
-
+            
             //Org Broadcast
             p3->getHeader()->setPreID ( getNodeID() );
             p3->getHeader()->setNexID ( BROADCAST_ID );
@@ -2095,15 +2094,14 @@ void IoT_device::recv_handler (packet *p){
             hi = true;
             send_handler(p3);
 
-        }
-
+        } 
         //unsigned mat = l3->getMatID();
         // unsigned act = l3->getActID();
         // string msg = l3->getMsg(); // get the msg
     }
     else if (p->type() == "IoT_data_packet" ) { // the device receives a packet
         
-        
+        /*
         //cout << "node " << getNodeID() << " send the packet" << endl;
         IoT_data_packet *p3 = nullptr;
         p3 = dynamic_cast<IoT_data_packet*> (p);
@@ -2118,7 +2116,7 @@ void IoT_device::recv_handler (packet *p){
             p3->getHeader()->setDstID ( 0 );
             send_handler(p3);
         }
-    
+        */
         
         
     }
@@ -2309,14 +2307,13 @@ int main()
     // event::flush_events() ;
     // cout << packet::getLivePacketNum() << endl;
 
-    /*
+    
     for (unsigned int id = 1; id < Nodes; id++){
         cout << id << " ";
         dynamic_cast<IoT_device *>(node::id_to_node(id))->DisplayChildren();
         //cout<<dynamic_cast<IoT_device *>(node::id_to_node(id))->GetParent();
         cout << "\n";
     }
-    */
     
     
 
