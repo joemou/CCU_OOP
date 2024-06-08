@@ -10,6 +10,8 @@
 #include <set>
 #include <vector>
 #include <algorithm>
+#include <sstream>
+#include <string>
 
 using namespace std;
 
@@ -814,6 +816,8 @@ class IoT_device: public node {
 
         void AddChild(unsigned int c) { children.push_back(c); }
         void AddConnect(unsigned int c) { phyconnect.push_back(c); }
+        void DeleConnect() { phyconnect.pop_back(); }
+        vector<unsigned int> GetPhyConnect() { return phyconnect;}
         void DeleChild(unsigned int c) { 
             auto it = std::remove(children.begin(), children.end(), c);
             if (it != children.end()) {
@@ -901,8 +905,8 @@ class IoT_device: public node {
         int id = 0;
         map<unsigned int,unsigned int> Smallest_Parent_Id;
         map<unsigned int,unsigned int> Smallest_Counter_Id;
-
-       
+        map<unsigned int,unsigned int> Reversed_Path_Map;
+        string AggMsg;
 };
 IoT_device::IoT_device_generator IoT_device::IoT_device_generator::sample;
 
@@ -2011,6 +2015,32 @@ void node::send(packet *p){ // this function is called by event; not for the use
     packet::discard(p);
 }
 
+//unsigned int to string
+string vectorToString(const vector<unsigned int>& vec) {
+    ostringstream oss;
+    for (unsigned int i = 0; i < vec.size(); ++i) {
+        oss << vec[i];
+        if (i != vec.size() - 1) {
+            oss << ", "; // 如果需要不同的分隔符號，可以在這裡更改
+        }
+    }
+    return oss.str();
+}
+
+//sting to unsigned int
+vector<unsigned int> stringToVector(const string& str) {
+    vector<unsigned int> vec;
+    istringstream iss(str);
+    string temp;
+    while (getline(iss, temp, ',')) {
+        istringstream elem(temp);
+        unsigned int num;
+        elem >> num;
+        vec.push_back(num);
+    }
+    return vec;
+}
+
 // you have to write the code in recv_handler of IoT_device
 void IoT_device::recv_handler (packet *p){
     
@@ -2099,6 +2129,12 @@ void IoT_device::recv_handler (packet *p){
                     AddConnect(it->first);
                 }
             }
+
+            if(AggMsg.size()==0){
+                AddConnect(getNodeID());//add self node at last num to use as agg msg
+                AggMsg = vectorToString(GetPhyConnect());
+                DeleConnect();//dele self node
+            }
             
             //Org Broadcast
             p3->getHeader()->setPreID ( getNodeID() );
@@ -2114,9 +2150,7 @@ void IoT_device::recv_handler (packet *p){
         // unsigned act = l3->getActID();
         // string msg = l3->getMsg(); // get the msg
     }
-    else if (p->type() == "IoT_data_packet" ) { // the device receives a packet
-        
-        
+    else if (p->type() == "IoT_data_packet" ) { // the device receives a packet    
         //cout << "node " << getNodeID() << " send the packet" << endl;
         IoT_data_packet *p3 = nullptr;
         p3 = dynamic_cast<IoT_data_packet*> (p);
@@ -2131,19 +2165,14 @@ void IoT_device::recv_handler (packet *p){
             p3->getHeader()->setDstID ( 0 );
             send_handler(p3);
         }
-        
-        
-        
-        
-        
-        
     }
     else if (p->type() == "AGG_ctrl_packet") {
         AGG_ctrl_packet *p3 = nullptr;
         p3 = dynamic_cast<AGG_ctrl_packet*> (p);
         AGG_ctrl_payload *l3 = nullptr;
         l3 = dynamic_cast<AGG_ctrl_payload*> (p3->getPayload());
-        
+        l3->setMsg(AggMsg);
+        send_handler(p3);
         // cout << "node id = " << getNodeID() << ", msg = "  << l3->getMsg() << endl;
     }
     else if (p->type() == "DIS_ctrl_packet") {
@@ -2302,7 +2331,7 @@ int main()
     
     // node 4 sends a packet to node 0 at time 200 --> you need to implement routing tables for IoT_devicees
     for (unsigned int id = 1; id < Nodes; id ++){
-        IoT_data_packet_event(id, 0, DataTransTime); // IoT_data_packet  
+        IoT_data_packet_event(id, 0, DataTransTime); 
     }
 
     // 1st parameter: the source node
@@ -2310,16 +2339,15 @@ int main()
     // 3rd parameter: time (optional)
     // 4th parameter: msg for debug (optional)
     
-
-    
-    
-    AGG_ctrl_packet_event(4, 0, 250);
+    for (unsigned int id = 1; id < Nodes; id ++){
+        AGG_ctrl_packet_event(id, 0, AggStartTime);
+    }
     // 1st parameter: the source node
     // 2nd parameter: the destination node (sink)
     // 3rd parameter: time (optional)
     // 4th parameter: msg (for storing nb list)
     
-    DIS_ctrl_packet_event(0, 260);
+    DIS_ctrl_packet_event(0, DisStartTime);
     // 1st parameter: the source node (sink)
     // 2nd parameter: the destination node
     // 3rd parameter: parent 
@@ -2341,11 +2369,6 @@ int main()
     }
     */
     
-    
-    
-    
-    
-
     cout << "0 0\n";
     for (unsigned int id = 1; id < Nodes; id++){
         cout << id << " ";
