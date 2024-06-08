@@ -7,7 +7,9 @@
 #include <iomanip>
 #include <stack>
 #include <unordered_set>
-
+#include <set>
+#include <vector>
+#include <algorithm>
 
 using namespace std;
 
@@ -41,6 +43,17 @@ class header {
         GET(getPreID, unsigned int , preID);
         GET(getNexID, unsigned int , nexID);
         
+        SET(setVisa, unsigned int , Visa, _Visa);
+        GET(getVisa, unsigned int , Visa);
+        SET(setParent, unsigned int , Parent, _Parent);
+        GET(getParent, unsigned int , Parent);
+        SET(setOldparent, unsigned int , Oldparent, _Oldparent);
+        GET(getOldparent, unsigned int , Oldparent);
+        SET(setCounter, unsigned int , Counter, _Counter);
+        GET(getCounter, unsigned int , Counter);
+
+        
+
         virtual string type() = 0;
         
         // factory concept: generate a header
@@ -76,14 +89,19 @@ class header {
         };
         
     protected:
-        header():srcID(BROADCAST_ID),dstID(BROADCAST_ID),preID(BROADCAST_ID),nexID(BROADCAST_ID){} // this constructor cannot be directly called by users
+        header():srcID(BROADCAST_ID),dstID(BROADCAST_ID),preID(BROADCAST_ID),nexID(BROADCAST_ID),Visa(0),Parent(BROADCAST_ID),Oldparent(BROADCAST_ID){} // this constructor cannot be directly called by users
 
     private:
         unsigned int srcID;
         unsigned int dstID;
         unsigned int preID;
         unsigned int nexID;
-        header(header&){} // this constructor cannot be directly called by users
+        unsigned int Visa;
+        unsigned int Parent;
+        unsigned int Oldparent;
+        unsigned int Counter;
+
+        header(header &) {} // this constructor cannot be directly called by users
 };
 map<string,header::header_generator*> header::header_generator::prototypes;
 
@@ -684,7 +702,8 @@ class node {
         
         unsigned int id;
         map<unsigned int,bool> phy_neighbors;
-        
+        unsigned int size;
+
     protected:
         node(node&){} // this constructor should not be used
         node(){} // this constructor should not be used
@@ -698,6 +717,14 @@ class node {
         void add_phy_neighbor (unsigned int _id, string link_type = "simple_link"); // we only add a directed link from id to _id
         void del_phy_neighbor (unsigned int _id); // we only delete a directed link from id to _id
         
+        void add_data_size(unsigned int s){
+            size = s;
+        };
+
+        unsigned int get_data_size(){
+            return size;
+        }
+
         // you can use the function to get the node's neigbhors at this time
         // but in the project 3, you are not allowed to use this function 
         const map<unsigned int,bool> & getPhyNeighbors () { 
@@ -771,9 +798,10 @@ map<unsigned int,node*> node::id_node_table;
 class IoT_device: public node {
         // map<unsigned int,bool> one_hop_neighbors; // you can use this variable to record the node's 1-hop neighbors
         bool hi;
-        unsigned int parent=99999;
-        
-        vector<unsigned int> children;
+
+        unsigned parent=99999;
+        std::vector<unsigned int> children;
+        std::vector<unsigned int> phyconnect;
 
     protected:
         IoT_device() {} // it should not be used
@@ -785,19 +813,51 @@ class IoT_device: public node {
         void SetParent(unsigned int p) { parent = p; }
 
         void AddChild(unsigned int c) { children.push_back(c); }
+        void AddConnect(unsigned int c) { phyconnect.push_back(c); }
         void DeleChild(unsigned int c) { 
-            vector<unsigned int>::iterator it = remove(children.begin(), children.end(), c);
+            auto it = std::remove(children.begin(), children.end(), c);
             if (it != children.end()) {
                 // Use erase to remove the elements from the vector
                 children.erase(it, children.end());
-            } else {
-                cout << "ID " << c << " not found" << endl;
             }
+            
         
         }
         bool FindChild(unsigned int c) {  
-            vector<unsigned int>::iterator it = find(children.begin(), children.end(), c);
+            vector<unsigned int>::iterator it = std::find(children.begin(), children.end(), c);
             if(it!=children.end()){
+                return true;
+            }
+            else{
+                return false;
+            }
+        }
+        void DisplayChildren(){
+            if(children.size()==0){
+                cout << "no child\n";
+            }
+            for (size_t i = 0; i < children.size(); ++i) {
+                if (i != 0) {
+                    cout<< ", ";
+                }
+                cout << children[i];
+            }
+            cout << "\n";
+        }
+
+            bool IsThereChild(){
+            if(children.size()==0){
+                return false;
+            }
+            else{
+                return true;
+            }
+
+        }
+
+        bool FindConnect(unsigned int c) {  
+            vector<unsigned int>::iterator it = std::find(phyconnect.begin(),phyconnect.end(), c);
+            if(it!=phyconnect.end()){
                 return true;
             }
             else{
@@ -829,8 +889,20 @@ class IoT_device: public node {
                 ~IoT_device_generator(){}
         };
 
+        void initialize_surround_map(int Nodes){
+            for (int key = 0; key <= Nodes; ++key) {
+                Smallest_Parent_Id[key] = 99999;
+                Smallest_Counter_Id[key] = 99999;
+            }
+        }
 
-        unsigned int counter=99999;
+        int flag = 1;
+        unsigned  int counter=99999;
+        int id = 0;
+        map<unsigned int,unsigned int> Smallest_Parent_Id;
+        map<unsigned int,unsigned int> Smallest_Counter_Id;
+
+       
 };
 IoT_device::IoT_device_generator IoT_device::IoT_device_generator::sample;
 
@@ -840,7 +912,7 @@ class IoT_sink: public node {
         bool hi; // this is used for example; you can remove it when doing hw2
 
         unsigned int parent;
-        vector<unsigned int> children;
+        std::vector<unsigned int> children;
 
     protected:
         IoT_sink() {} // it should not be used
@@ -1942,7 +2014,12 @@ void node::send(packet *p){ // this function is called by event; not for the use
 // you have to write the code in recv_handler of IoT_device
 void IoT_device::recv_handler (packet *p){
     
-
+    //initialize surround map
+    if(flag){
+        initialize_surround_map(getNodeNum());
+        flag = 0;
+    }
+    
 
     // in this function, you are "not" allowed to use node::id_to_node(id) !!!!!!!!
 
@@ -1950,13 +2027,7 @@ void IoT_device::recv_handler (packet *p){
     // node 0 broadcasts its message to every node and every node relays the packet "only once" and increases its counter
     // the variable hi is used to examine whether the packet has been received by this node before
     // you can remove the variable hi and create your own routing table in class IoT_device
-    if (p == nullptr) return ;
-
-    //examine whether preID is smaller
-    if(p->getHeader()->getPreID()<GetParent()){
-        hi = false;
-    }
-
+    if (p == nullptr) return;
 
     if (p->type() == "IoT_ctrl_packet") { // the device receives a packet from the sink
         IoT_ctrl_packet *p3 = nullptr;
@@ -1964,49 +2035,77 @@ void IoT_device::recv_handler (packet *p){
         IoT_ctrl_payload *l3 = nullptr;
         l3 = dynamic_cast<IoT_ctrl_payload*> (p3->getPayload());
 
+        unsigned int Node_sent_packet = p3->getHeader()->getPreID();
+        unsigned int Node_sent_packet_parent = p3->getHeader()->getParent();
+        unsigned int Node_sent_packet_counter = p3->getHeader()->getCounter();
 
-        cout << endl <<getNodeID() << " " << p->getHeader()->getPreID()<<"(packe counte "<< l3->getCounter() <<")(on iot"<<counter<<")"<<endl;
 
         if(l3->getCounter()<counter){
             hi = false;
-            cout << endl << "counter big than prev\n\n\n\n\n\n\n\n\n\n\n"<<getNodeID() << " " << p->getHeader()->getPreID() << endl;
         }
         if(p->getHeader()->getPreID()<GetParent()&&l3->getCounter()==counter){
             hi = false;
-            cout << "\n\n\n\n" << "id big than store Node:"<<getNodeID() << " packet from who " << p->getHeader()->getPreID() <<" orgpa "<<GetParent()<< endl;
         }
         
-        if(hi && FindChild(p->getHeader()->getPreID())){
-            cout << "again fuck\n";
+        if(hi && FindConnect(p->getHeader()->getPreID())){
             hi = true;
         }
         if(l3->getCounter()>counter){
             hi = true;
         }
 
-
-
+        int flag = 0;
+        //compare surround counter
+        if(Smallest_Counter_Id[Node_sent_packet]>Node_sent_packet_counter){
+            Smallest_Counter_Id[Node_sent_packet] = Node_sent_packet_counter;
+            Smallest_Parent_Id[Node_sent_packet] = Node_sent_packet_parent;
+            if(Node_sent_packet_parent==getNodeID()){
+                flag = 1;
+            }
+        }
+        else if(Smallest_Counter_Id[Node_sent_packet]==Node_sent_packet_counter&&Smallest_Parent_Id[Node_sent_packet]>Node_sent_packet_parent){
+            Smallest_Parent_Id[Node_sent_packet] = Node_sent_packet_parent;
+            if(Node_sent_packet_parent==getNodeID()){
+                flag = 1;
+            }
+        }
+        
+        //Delete those child choosing other parent
+        if(FindChild(Node_sent_packet)){
+            if(Smallest_Parent_Id[Node_sent_packet]!=getNodeID ()){
+                DeleChild(Node_sent_packet);                
+            }
+        }
+        
+        //if the packet counter or id smaller then record update
+        if(flag){
+            AddChild(Node_sent_packet);
+            hi = true;
+        }
 
         if(!hi){
-            cout << "\nB\n";
+            
             counter = l3->getCounter();
-            SetParent(p3->getHeader()->getPreID());
 
+            p3->getHeader()->setParent(p->getHeader()->getPreID());//save their parent
+            p3->getHeader()->setOldparent(GetParent()); // if there is no old parent which is 99999
+           
+            SetParent(p3->getHeader()->getPreID()); // set new parent
+            
             const map<unsigned int, bool> &nblist = getPhyNeighbors();
             for (map<unsigned int, bool>::const_iterator it = nblist.begin(); it != nblist.end(); it++)
             {
                 if(it->second){
-                    AddChild(it->first);
+                    AddConnect(it->first);
                 }
             }
-
+            
+            //Org Broadcast
             p3->getHeader()->setPreID ( getNodeID() );
             p3->getHeader()->setNexID ( BROADCAST_ID );
             p3->getHeader()->setDstID ( BROADCAST_ID );
-
+            p3->getHeader()->setCounter ( counter );
             l3->increase();
-
-
             hi = true;
             send_handler(p3);
 
@@ -2016,7 +2115,28 @@ void IoT_device::recv_handler (packet *p){
         // string msg = l3->getMsg(); // get the msg
     }
     else if (p->type() == "IoT_data_packet" ) { // the device receives a packet
-        cout << "node " << getNodeID() << " send the packet" << endl;
+        
+        
+        //cout << "node " << getNodeID() << " send the packet" << endl;
+        IoT_data_packet *p3 = nullptr;
+        p3 = dynamic_cast<IoT_data_packet*> (p);
+
+        if(IsThereChild()){
+            //dele the child to record whether get each child packer
+            DeleChild(p3->getHeader()->getPreID());
+        }
+        if(!IsThereChild()){
+            p3->getHeader()->setPreID ( getNodeID() );
+            p3->getHeader()->setNexID ( GetParent());
+            p3->getHeader()->setDstID ( 0 );
+            send_handler(p3);
+        }
+        
+        
+        
+        
+        
+        
     }
     else if (p->type() == "AGG_ctrl_packet") {
         AGG_ctrl_packet *p3 = nullptr;
@@ -2141,18 +2261,24 @@ int main()
     
     // read the input and generate devices
 
-    unsigned int Nodes, Links;
-    int SimTime, BfsStart, DataTrans;
+    unsigned int Nodes, Links, PacketSize;
+    int SimTime, BfsStartTime, AggStartTime;
+    int DisStartTime, DataTransTime;
+    int NodeId, DataSize;
     int LinkId, LinkEnd1, LinkEnd2;
-
-    cin >> Nodes >> Links;
-    cin >> SimTime >> BfsStart >> DataTrans;
-
+    
+    cin >> Nodes >> Links >> PacketSize;
+    cin >> SimTime >> BfsStartTime >> AggStartTime;
+    cin >> DisStartTime >> DataTransTime;
 
     node::node_generator::generate("IoT_sink",0);
-
     for (unsigned int id = 1; id < Nodes; id ++){
         node::node_generator::generate("IoT_device",id);    
+    }
+
+    for (unsigned int id = 0; id < Nodes; id ++){
+        cin >> NodeId >> DataSize;
+        node::id_to_node(NodeId)->add_data_size(DataSize);
     }
     
 
@@ -2166,21 +2292,25 @@ int main()
     
     
     // node 0 broadcasts a msg with counter 0 at time 100
-    IoT_ctrl_packet_event(0, BfsStart);
+    IoT_ctrl_packet_event(0, BfsStartTime);
     // 1st parameter: the source; the destination that want to broadcast a msg with counter 0 (i.e., match ID)
     // 2nd parameter: time (optional)
     // 3rd parameter: msg for debug information (optional)
+
+
+
     
     // node 4 sends a packet to node 0 at time 200 --> you need to implement routing tables for IoT_devicees
     for (unsigned int id = 1; id < Nodes; id ++){
-        IoT_data_packet_event(id, 0, DataTrans); // IoT_data_packet  
+        IoT_data_packet_event(id, 0, DataTransTime); // IoT_data_packet  
     }
-    
+
     // 1st parameter: the source node
     // 2nd parameter: the destination node (sink)
     // 3rd parameter: time (optional)
     // 4th parameter: msg for debug (optional)
     
+
     
     
     AGG_ctrl_packet_event(4, 0, 250);
@@ -2200,6 +2330,21 @@ int main()
     event::start_simulate(SimTime);
     // event::flush_events() ;
     // cout << packet::getLivePacketNum() << endl;
+
+
+    /*
+    for (unsigned int id = 1; id < Nodes; id++){
+        cout << id << " ";
+        dynamic_cast<IoT_device *>(node::id_to_node(id))->DisplayChildren();
+        //cout<<dynamic_cast<IoT_device *>(node::id_to_node(id))->GetParent();
+        cout << "\n";
+    }
+    */
+    
+    
+    
+    
+    
 
     cout << "0 0\n";
     for (unsigned int id = 1; id < Nodes; id++){
