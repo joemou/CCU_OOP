@@ -89,7 +89,7 @@ class header {
         };
         
     protected:
-        header():srcID(BROADCAST_ID),dstID(BROADCAST_ID),preID(BROADCAST_ID),nexID(BROADCAST_ID),Visa(0),Parent(BROADCAST_ID),Oldparent(BROADCAST_ID){} // this constructor cannot be directly called by users
+        header():srcID(BROADCAST_ID),dstID(BROADCAST_ID),preID(BROADCAST_ID),nexID(BROADCAST_ID),Visa(0),Parent(BROADCAST_ID),Oldparent(BROADCAST_ID),CustomPacket(0){} // this constructor cannot be directly called by users
 
     private:
         unsigned int srcID;
@@ -834,6 +834,16 @@ class IoT_device: public node {
                 cout << children[i];
             }
             cout << "\n";
+        }
+
+            bool IsThereChild(){
+            if(children.size()==0){
+                return false;
+            }
+            else{
+                return true;
+            }
+
         }
 
             bool IsThereChild(){
@@ -2019,6 +2029,7 @@ void IoT_device::recv_handler (packet *p){
     // the variable hi is used to examine whether the packet has been received by this node before
     // you can remove the variable hi and create your own routing table in class IoT_device
     if (p == nullptr) return;
+    if (p == nullptr) return;
 
     if (p->type() == "IoT_ctrl_packet") { // the device receives a packet from the sink
         IoT_ctrl_packet *p3 = nullptr;
@@ -2090,6 +2101,7 @@ void IoT_device::recv_handler (packet *p){
                     AddConnect(it->first);
                 }
             }
+            
             
             //Org Broadcast
             p3->getHeader()->setPreID ( getNodeID() );
@@ -2299,11 +2311,13 @@ int main()
     
     
     //AGG_ctrl_packet_event(4, 0, 250);
+    //AGG_ctrl_packet_event(4, 0, 250);
     // 1st parameter: the source node
     // 2nd parameter: the destination node (sink)
     // 3rd parameter: time (optional)
     // 4th parameter: msg (for storing nb list)
     
+    //DIS_ctrl_packet_event(0, 260);
     //DIS_ctrl_packet_event(0, 260);
     // 1st parameter: the source node (sink)
     // 2nd parameter: the destination node
@@ -2321,6 +2335,7 @@ int main()
     for (unsigned int id = 1; id < Nodes; id++){
         cout << id << " ";
         dynamic_cast<IoT_device *>(node::id_to_node(id))->DisplayChildren();
+        //cout<<dynamic_cast<IoT_device *>(node::id_to_node(id))->GetParent();
         //cout<<dynamic_cast<IoT_device *>(node::id_to_node(id))->GetParent();
         cout << "\n";
     }
