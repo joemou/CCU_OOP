@@ -2031,7 +2031,7 @@ string vectorToString(const vector<unsigned int>& vec) {
 vector<unsigned int> stringToVector(const string& str) {
     vector<unsigned int> vec;
     if(str.size()==0){
-        return;
+        return vec;
     }
     istringstream iss(str);
     string temp;
@@ -2177,7 +2177,7 @@ void IoT_device::recv_handler (packet *p){
         p3->getHeader()->setPreID ( getNodeID() );
         p3->getHeader()->setNexID ( GetParent() );
         p3->getHeader()->setDstID ( 0 );
-        vector<unsigned int> temp = stringToVector(l3->getMsg(AggMsg));
+        vector<unsigned int> temp = stringToVector(l3->getMsg());
 
         l3->setMsg(AggMsg);
         send_handler(p3);
