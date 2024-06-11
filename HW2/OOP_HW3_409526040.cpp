@@ -2030,6 +2030,9 @@ string vectorToString(const vector<unsigned int>& vec) {
 //sting to unsigned int
 vector<unsigned int> stringToVector(const string& str) {
     vector<unsigned int> vec;
+    if(str.size()==0){
+        return;
+    }
     istringstream iss(str);
     string temp;
     while (getline(iss, temp, ',')) {
@@ -2171,8 +2174,14 @@ void IoT_device::recv_handler (packet *p){
         p3 = dynamic_cast<AGG_ctrl_packet*> (p);
         AGG_ctrl_payload *l3 = nullptr;
         l3 = dynamic_cast<AGG_ctrl_payload*> (p3->getPayload());
+        p3->getHeader()->setPreID ( getNodeID() );
+        p3->getHeader()->setNexID ( GetParent() );
+        p3->getHeader()->setDstID ( 0 );
+        vector<unsigned int> temp = stringToVector(l3->getMsg(AggMsg));
+
         l3->setMsg(AggMsg);
         send_handler(p3);
+        
         // cout << "node id = " << getNodeID() << ", msg = "  << l3->getMsg() << endl;
     }
     else if (p->type() == "DIS_ctrl_packet") {
@@ -2266,6 +2275,8 @@ void IoT_sink::recv_handler (packet *p){
         p3 = dynamic_cast<AGG_ctrl_packet*> (p);
         AGG_ctrl_payload *l3 = nullptr;
         l3 = dynamic_cast<AGG_ctrl_payload*> (p3->getPayload());
+
+        
         
         // cout << "node id = " << getNodeID() << ", msg = "  << l3->getMsg() << endl;
     }
