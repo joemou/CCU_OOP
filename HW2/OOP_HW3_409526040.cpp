@@ -946,6 +946,8 @@ class IoT_sink: public node {
                 virtual string type() { return "IoT_sink";}
                 ~IoT_sink_generator(){}
         };
+        map<unsigned int,unsigned int> Reversed_Path_Map;
+        map<unsigned int, vector<unsigned int> > graph;
 };
 IoT_sink::IoT_sink_generator IoT_sink::IoT_sink_generator::sample;
 
@@ -2179,7 +2181,13 @@ void IoT_device::recv_handler (packet *p){
         p3->getHeader()->setDstID ( 0 );
         vector<unsigned int> temp = stringToVector(l3->getMsg());
 
-        l3->setMsg(AggMsg);
+        if(temp.size()==0){
+            p3->getHeader()->setSrcID ( getNodeID() );
+            l3->setMsg(AggMsg);
+        }
+
+        Reversed_Path_Map[p3->getHeader()->getSrcID()]=p3->getHeader()->getPreID();
+        
         send_handler(p3);
         
         // cout << "node id = " << getNodeID() << ", msg = "  << l3->getMsg() << endl;
@@ -2189,6 +2197,9 @@ void IoT_device::recv_handler (packet *p){
         p3 = dynamic_cast<DIS_ctrl_packet*> (p);
         DIS_ctrl_payload *l3 = nullptr;
         l3 = dynamic_cast<DIS_ctrl_payload*> (p3->getPayload());
+
+        p3->getHeader()->setPreID ( getNodeID() );
+        p3->getHeader()->setNexID ( Reversed_Path_Map[id] );
         
         // cout << "node id = " << getNodeID() << ", parent = "  << l3->getParent() << endl;
     }
@@ -2276,8 +2287,18 @@ void IoT_sink::recv_handler (packet *p){
         AGG_ctrl_payload *l3 = nullptr;
         l3 = dynamic_cast<AGG_ctrl_payload*> (p3->getPayload());
 
-        
-        
+        Reversed_Path_Map[p3->getHeader()->getSrcID()]=p3->getHeader()->getPreID();
+
+        vector<unsigned int> temp = stringToVector(l3->getMsg());
+        int sent_from_who=temp.back();
+        temp.pop_back();
+
+        //to constrrct the whole graph
+        while(!temp.empty()){
+            graph[sent_from_who].push_back(temp.back());
+            temp.pop_back();
+        }
+
         // cout << "node id = " << getNodeID() << ", msg = "  << l3->getMsg() << endl;
     }
     else if (p->type() == "DIS_ctrl_packet") {
@@ -2285,6 +2306,16 @@ void IoT_sink::recv_handler (packet *p){
         p3 = dynamic_cast<DIS_ctrl_packet*> (p);
         DIS_ctrl_payload *l3 = nullptr;
         l3 = dynamic_cast<DIS_ctrl_payload*> (p3->getPayload());
+
+        for(int id=1;id<getNodeNum();id++){
+            //l3->setParent();
+            p3->getHeader()->setPreID ( getNodeID() );
+            p3->getHeader()->setNexID ( Reversed_Path_Map[id] );
+            p3->getHeader()->setDstID ( id );
+
+            send_handler(p3);
+
+        }
         
         // cout << "node id = " << getNodeID() << ", parent = "  << l3->getParent() << endl;
     }

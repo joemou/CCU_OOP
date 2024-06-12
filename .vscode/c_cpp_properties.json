@@ -1,22 +1,21 @@
 {
   "configurations": [
     {
-      "name": "macos-clang-arm64",
-      "intelliSenseMode": "macos-clang-arm64",
-      "compilerPath": "/usr/bin/clang",
+      "name": "macos-gcc-x64",
       "includePath": [
         "${workspaceFolder}/**"
       ],
-      "defines": [],
-      "browse": {
-        "path": [
-          "${workspaceFolder}"
-        ],
-        "limitSymbolsToIncludedHeaders": true,
-        "databaseFilename": ""
-      },
+      "compilerPath": "/usr/bin/clang",
       "cStandard": "${default}",
-      "cppStandard": "${default}"
+      "cppStandard": "c++11",
+      "intelliSenseMode": "macos-gcc-x64",
+      "compilerArgs": [
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-stdlib=libc++",
+        "-std=c++11"
+      ]
     }
   ],
   "version": 4
