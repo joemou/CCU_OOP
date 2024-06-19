@@ -2341,7 +2341,7 @@ void IoT_sink::recv_handler (packet *p){
             }
         }
         
-        printGraph();
+        //printGraph();
 
         for(int id=1;id<getNodeNum();id++){
             l3->setParent(cp[id]);
