@@ -2745,15 +2745,18 @@ void IoT_sink::recv_handler (packet *p){
                         if(using_packet_num>after_packet_num){
                             //find anyone can help him
                             for(auto node2:graph[it]){
+                                //determine whether to move
                                 int flag=1;
                                 
+                                //if cause the helper node send more packet skip
                                 if(((subtreeSize[node2]+data[it])/packet_size)>subtreeSize[node2]/packet_size){
                                     flag=0;
                                     continue;
                                 }
 
                                 int par=new_parent[node2];
-                                //examine the parent will increase packet or not (under tareget level)
+                                //it will also influnce the packet node aggregated data so need trace its parent until the node level
+                                //and examine the parent will increase packet or not (>= tareget level)
                                 while(level[par]>=level[node]){
 
                                     if(((subtreeSize[par]+data[it])/packet_size)>subtreeSize[par]/packet_size){
