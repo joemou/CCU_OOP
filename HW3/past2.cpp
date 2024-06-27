@@ -56,6 +56,8 @@ class header {
         SET(setCheatParent, unsigned int , CheatParent, _CheatParent);
         GET(getCheatParent, unsigned int , CheatParent);
 
+        vector<int> new_children;
+
         
 
         virtual string type() = 0;
@@ -105,6 +107,7 @@ class header {
         unsigned int Oldparent;
         unsigned int Counter;
         unsigned int CheatParent;
+        
 
         header(header &) {} // this constructor cannot be directly called by users
 };
@@ -818,6 +821,7 @@ class IoT_device: public node {
         void SetParent(unsigned int p) { parent = p; }
 
         void AddChild(unsigned int c) { children.push_back(c); }
+        void DeleteAllChild() { children.clear(); }
         void AddConnect(unsigned int c) { phyconnect.push_back(c); }
         void DeleConnect() { phyconnect.pop_back(); }
         vector<unsigned int> GetPhyConnect() { return phyconnect;}
@@ -951,7 +955,7 @@ class IoT_sink: public node {
         };
         map<unsigned int,unsigned int> Reversed_Path_Map;
         map<unsigned int, vector<unsigned int> > graph;
-        map<unsigned int,unsigned int> cp;
+        map<unsigned int,unsigned int> new_parent;
        
         void printGraph() const {
             for (const auto& pair : graph) {
@@ -2225,6 +2229,20 @@ void IoT_device::recv_handler (packet *p){
         if(Reversed_Path_Map[dst_id]!=getNodeID()){
             send_handler(p3);
         }
+        else{
+            
+            parent=l3->getParent();
+
+            
+            DeleteAllChild();
+            while( !p3->getHeader()->new_children.empty()){
+                AddChild(p3->getHeader()->new_children.back());
+
+                p3->getHeader()->new_children.pop_back();
+                
+            }
+
+        }
     }
 
     // you should implement the OSPF algorithm in recv_handler
@@ -2271,6 +2289,7 @@ void IoT_device::recv_handler (packet *p){
     // note that packet p will be discarded (deleted) after recv_handler(); you don't need to manually delete it
 }
 
+
 void IoT_sink::recv_handler (packet *p){
 
         // in this function, you are "not" allowed to use node::id_to_node(id) !!!!!!!!
@@ -2310,7 +2329,7 @@ void IoT_sink::recv_handler (packet *p){
         AGG_ctrl_payload *l3 = nullptr;
         l3 = dynamic_cast<AGG_ctrl_payload*> (p3->getPayload());
 
-        cp[p3->getHeader()->getSrcID()]=p3->getHeader()->getCheatParent();
+        new_parent[p3->getHeader()->getSrcID()]=p3->getHeader()->getCheatParent();
 
         Reversed_Path_Map[p3->getHeader()->getSrcID()]=p3->getHeader()->getPreID();
         
@@ -2341,15 +2360,30 @@ void IoT_sink::recv_handler (packet *p){
             }
         }
         
-        printGraph();
+        //printGraph();
 
         for(int id=1;id<getNodeNum();id++){
-            l3->setParent(cp[id]);
+            l3->setParent(new_parent[id]);
+
+            vector<int> new_children;
+
+            //construct the new child
+            for(int i=0;i<getNodeNum();i++){
+                if(id==new_parent[i]){
+                    new_children.push_back(i);
+                }
+            }
+
+
+
+            p3->getHeader()->new_children.assign(new_children.begin(), new_children.end());
+
+
+
             p3->getHeader()->setSrcID ( 0 );
             p3->getHeader()->setPreID ( getNodeID() );
             p3->getHeader()->setNexID ( Reversed_Path_Map[id] );
             p3->getHeader()->setDstID ( id );
-
 
             send_handler(p3);
 
