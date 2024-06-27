@@ -2757,8 +2757,10 @@ void IoT_sink::recv_handler (packet *p){
                                 int par=new_parent[node2];
                                 //it will also influnce the packet node aggregated data so need trace its parent until the node level
                                 //and examine the parent will increase packet or not (>= tareget level)
+                                //if increase then skip it
                                 while(level[par]>=level[node]){
-
+                                    
+                                    //parent subtree size + data add size
                                     if(((subtreeSize[par]+data[it])/packet_size)>subtreeSize[par]/packet_size){
                                         flag=0;
                                         break;
@@ -2767,7 +2769,7 @@ void IoT_sink::recv_handler (packet *p){
                                     par=new_parent[par];
                                 }
 
-                                //update
+                                //if transfer node is a deal
                                 if(flag){
                                     subtreeSize[node2]+=data[it];
                                     subtreeSize[node]-=data[it];
@@ -2776,9 +2778,10 @@ void IoT_sink::recv_handler (packet *p){
                                     new_parent[it]=node2;
                                     level[it]=level[node2]+1;
 
+                                    //not same level
                                     if(level[node]!=level[node2]){
                                     
-                                        //modify subtreesize
+                                        //modify subtreesize and let par and node to the same level
                                         while(level[par]>=level[node]){
 
                                             subtreeSize[par]+=data[it];
@@ -2786,6 +2789,8 @@ void IoT_sink::recv_handler (packet *p){
                                             par=new_parent[par];
                                         }
                                         
+                                        //we do not know par and node parent same or not
+                                        //so keep trace and update subtree size there cross node
                                         int par2=new_parent[node];
                                         //?
                                         while(par!=par2){
