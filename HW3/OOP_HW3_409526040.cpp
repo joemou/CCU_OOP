@@ -2744,8 +2744,8 @@ void IoT_sink::recv_handler (packet *p){
                 for(auto it:children[node]){
                     //if chilren are leaf
                     if(data[it]==subtreeSize[it]){
-                        double using_packet_num = ceil(subtreeSize[node]/packet_size);
-                        double after_packet_num = ceil((subtreeSize[node]-data[it])/packet_size);
+                        double using_packet_num = ceil((double)subtreeSize[node]/(double)packet_size);
+                        double after_packet_num = ceil(((double)subtreeSize[node]-(double)data[it])/(double)packet_size);
                         //if cut it can be better
                         if(using_packet_num>after_packet_num){
                             //find anyone can help him
@@ -2754,7 +2754,7 @@ void IoT_sink::recv_handler (packet *p){
                                 int flag=1;
                                 
                                 //if cause the helper node send more packet skip
-                                if(((subtreeSize[node2]+data[it])/packet_size)>subtreeSize[node2]/packet_size){
+                                if(((subtreeSize[node2]+data[it])/packet_size)>subtreeSize[node2]/packet_size||(node==node2)){
                                     flag=0;
                                     continue;
                                 }
@@ -2820,9 +2820,11 @@ void IoT_sink::recv_handler (packet *p){
                             }
 
                             //calc the org using packet and after moving using packet
-                            double org_packet_num = ceil(subtreeSize[node2]/packet_size)+ceil(subtreeSize[node]/packet_size);
-                            double after_packet_num = ceil((subtreeSize[node2]+subtreeSize[it])/packet_size)+ceil((subtreeSize[node]-subtreeSize[it])/packet_size);
-                            
+                            double org_packet_num = ceil((double)subtreeSize[node2]/(double)packet_size)+ceil((double)subtreeSize[node]/(double)packet_size);
+                            double after_packet_num = ceil(((double)subtreeSize[node2]+(double)subtreeSize[it])/(double)packet_size)+ceil(((double)subtreeSize[node]-(double)subtreeSize[it])/(double)packet_size);
+
+                            //cout<<"node:"<<node<<" it "<<it<<" node2 "<< node2 <<" change old parent "<< new_parent[it] <<" orgpacket "<<org_packet_num<<" after "<<after_packet_num<<"\n";
+                            //cout<<"subtreeSize[node]:"<<subtreeSize[node]<<" subtreeSize[node2] "<<subtreeSize[node2]<<" subtreeSize[it] "<< subtreeSize[it] <<" packet_size "<< packet_size <<"\n";
                             
                             if(org_packet_num>after_packet_num){
                                 
