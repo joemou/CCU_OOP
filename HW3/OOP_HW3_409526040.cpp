@@ -2216,6 +2216,7 @@ void IoT_device::recv_handler (packet *p){
         AGG_ctrl_payload *l3 = nullptr;
         l3 = dynamic_cast<AGG_ctrl_payload*> (p3->getPayload());
 
+        //check whether packet generate in this node
         if((l3->getMsg()=="default")){
             p3->getHeader()->setCheatParent ( GetParent() );
             p3->getHeader()->setSrcID ( getNodeID() );
@@ -2249,15 +2250,19 @@ void IoT_device::recv_handler (packet *p){
         
         //cout << "node id = " << getNodeID() << ", parent = "  << l3->getParent() << endl;
         //cout << "dst id = " << dst_id << ", next = "  << Reversed_Path_Map[dst_id] << endl;
+
+        //if it it has been arrived no send anymore
         if(Reversed_Path_Map[dst_id]!=getNodeID()){
             send_handler(p3);
         }
         else{
             
+            //set new parent
             parent=l3->getParent();
 
-            
+            //delete all child
             DeleteAllChild();
+            //set new child
             while( !p3->getHeader()->new_children.empty()){
                 AddChild(p3->getHeader()->new_children.back());
 
@@ -2730,7 +2735,7 @@ void IoT_sink::recv_handler (packet *p){
                 
                 target.pop_back();
 
-                //if it is leaf
+                //if it is leaf no more consideration
                 if(subtreeSize[node]==data[node]){
                     continue;
                 }
@@ -2739,8 +2744,8 @@ void IoT_sink::recv_handler (packet *p){
                 for(auto it:children[node]){
                     //if chilren are leaf
                     if(data[it]==subtreeSize[it]){
-                        double using_packet_num = ceil(subtreeSize[node]/packet_size);
-                        double after_packet_num = ceil((subtreeSize[node]-data[it])/packet_size);
+                        double using_packet_num = ceil((double)subtreeSize[node]/(double)packet_size);
+                        double after_packet_num = ceil(((double)subtreeSize[node]-(double)data[it])/(double)packet_size);
                         //if cut it can be better
                         if(using_packet_num>after_packet_num){
                             //find anyone can help him
@@ -2749,7 +2754,7 @@ void IoT_sink::recv_handler (packet *p){
                                 int flag=1;
                                 
                                 //if cause the helper node send more packet skip
-                                if(((subtreeSize[node2]+data[it])/packet_size)>subtreeSize[node2]/packet_size){
+                                if(((subtreeSize[node2]+data[it])/packet_size)>subtreeSize[node2]/packet_size||(node==node2)){
                                     flag=0;
                                     continue;
                                 }
@@ -2790,9 +2795,8 @@ void IoT_sink::recv_handler (packet *p){
                                         }
                                         
                                         //we do not know par and node parent same or not
-                                        //so keep trace and update subtree size there cross node
+                                        //so keep trace and update subtree size until reaching the cross node
                                         int par2=new_parent[node];
-                                        //?
                                         while(par!=par2){
                                             subtreeSize[par]+=data[it];
                                             subtreeSize[par2]-=data[it];
@@ -2804,16 +2808,14 @@ void IoT_sink::recv_handler (packet *p){
                                         
                                     
 
-                    
+                                    
+                                    
                                 }
-                                
                             }
-                            
                         }
                     }
-                     //if child is subtree , it need find same level helper
 
-                    
+                    //if child is subtree , it need find same level helper
                     else{
                         for(auto node2:graph[it]){
                             //make sure level not changing
@@ -2822,12 +2824,15 @@ void IoT_sink::recv_handler (packet *p){
                                 continue;
                             }
 
-                            double org_packet_num = ceil(subtreeSize[node2]/packet_size)+ceil(subtreeSize[node]/packet_size);
-                            double after_packet_num = ceil((subtreeSize[node2]+subtreeSize[it])/packet_size)+ceil((subtreeSize[node]-subtreeSize[it])/packet_size);
-                            
+                            //calc the org using packet and after moving using packet
+                            double org_packet_num = ceil((double)subtreeSize[node2]/(double)packet_size)+ceil((double)subtreeSize[node]/(double)packet_size);
+                            double after_packet_num = ceil(((double)subtreeSize[node2]+(double)subtreeSize[it])/(double)packet_size)+ceil(((double)subtreeSize[node]-(double)subtreeSize[it])/(double)packet_size);
+
+                            //cout<<"node:"<<node<<" it "<<it<<" node2 "<< node2 <<" change old parent "<< new_parent[it] <<" orgpacket "<<org_packet_num<<" after "<<after_packet_num<<"\n";
+                            //cout<<"subtreeSize[node]:"<<subtreeSize[node]<<" subtreeSize[node2] "<<subtreeSize[node2]<<" subtreeSize[it] "<< subtreeSize[it] <<" packet_size "<< packet_size <<"\n";
                             
                             if(org_packet_num>after_packet_num){
-                                //?
+                                
                                 subtreeSize[node]-=subtreeSize[it];
                                 subtreeSize[node2]+=subtreeSize[it];
                                 new_parent[it]=node2;
@@ -2840,27 +2845,18 @@ void IoT_sink::recv_handler (packet *p){
                                     continue;
                                 }
                                 
-                                
+                                //find there parent cross node, modify each ancestor subtree size
                                 while(parentA!=parentB){
                                     subtreeSize[parentA]-=subtreeSize[it];
                                     subtreeSize[parentB]+=subtreeSize[it];
                                     parentA=new_parent[parentA];
                                     parentB=new_parent[parentB];
                                 }
-
-                                
                             }
-                            
-                            
                         }
                     }
-                    
-                    
-
-                   
                 }
             }
-            
         }
         /*
         for (unsigned int i = 1; i < subtreeSize.size(); ++i) {
@@ -2868,26 +2864,21 @@ void IoT_sink::recv_handler (packet *p){
         }
         */
 
-
-
-
-
         //printGraph();
 
         for(int id=1;id<getNodeNum();id++){
+            
+            //put new parents to packet
             l3->setParent(new_parent[id]);
 
             vector<int> new_children;
 
-            //construct the new child
+            //by new parent, find the new child and put into packet
             for(int i=0;i<getNodeNum();i++){
                 if(id==new_parent[i]){
                     new_children.push_back(i);
                 }
             }
-
-
-
             p3->getHeader()->new_children.assign(new_children.begin(), new_children.end());
 
 
